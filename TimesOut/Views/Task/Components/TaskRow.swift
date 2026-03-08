@@ -8,6 +8,13 @@ struct TaskRow: View {
     let onToggle: () -> Void
     var onEdit: (() -> Void)? = nil
     
+    private var isOverdue: Bool {
+        if let dueDate = task.dueDate {
+            return dueDate < Date() && !task.isCompleted
+        }
+        return false
+    }
+
     var body: some View {
         HStack(spacing: 16) {
             // Multi-select circle (edit mode) or completion checkbox (normal mode)
@@ -38,8 +45,12 @@ struct TaskRow: View {
                             Image(systemName: "calendar.badge.clock")
                             Text(dueDate, format: .dateTime.month(.abbreviated).day().hour().minute())
                         }
-                        .font(.caption)
-                        .foregroundColor((dueDate < Date() && !task.isCompleted) ? .red : .secondary)
+                        .font(.caption2)
+                        .fontWidth(.expanded)
+                        .foregroundColor(isOverdue ? .red : .white)
+                        .padding(.horizontal,5)
+                        .padding(.vertical,4)
+                        .glassEffect(.clear.tint(isOverdue ?  .black.opacity(0.6): task.priority.color),in: .rect(cornerRadius: 6))
                     }
                 }
             }
@@ -49,16 +60,17 @@ struct TaskRow: View {
             Button {
                 onEdit?()
             } label: {
-                Image(systemName: isEditMode ? "square.and.pencil" : task.priority.icon)
+                Image(systemName: isEditMode ? "square.and.pencil" : (isOverdue ? "xmark.circle.fill" : task.priority.icon))
                     .font(isEditMode ? .title2 : .title3)
                     .fontWeight(.bold)
-                    .foregroundColor(isEditMode ? .secondary : (task.isCompleted ? .gray : task.priority.color))
+                    .foregroundColor(isEditMode ? .secondary : (task.isCompleted ? .gray : (isOverdue ? .red : task.priority.color)))
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(.plain)
             .allowsHitTesting(isEditMode)
         }
+        .opacity((isOverdue && !isEditMode) ? 0.6 : 1.0)
         .contentShape(Rectangle())
         .onTapGesture {
             onToggle()
@@ -69,9 +81,19 @@ struct TaskRow: View {
 }
 
 #Preview {
-    VStack {
-        TaskRow(task: TaskItem(title: "Normal mode"), isEditMode: false, isSelected: false, onToggle: {})
+    VStack(spacing: 20) {
+        TaskRow(task: TaskItem(title: "Normal Task", priority: .medium), isEditMode: false, isSelected: false, onToggle: {})
+        
+        TaskRow(task: TaskItem(title: "Upcoming Task", priority: .high, dueDate: Date().addingTimeInterval(3600)), isEditMode: false, isSelected: false, onToggle: {})
+        
+        TaskRow(task: TaskItem(title: "Overdue Task", priority: .high, dueDate: Date().addingTimeInterval(-3600)), isEditMode: false, isSelected: false, onToggle: {})
+        
+        TaskRow(task: TaskItem(title: "Completed Task", isCompleted: true, priority: .low, dueDate: Date().addingTimeInterval(-3600)), isEditMode: false, isSelected: false, onToggle: {})
+        
+        Divider()
+        
         TaskRow(task: TaskItem(title: "Edit mode unselected"), isEditMode: true, isSelected: false, onToggle: {})
+        
         TaskRow(task: TaskItem(title: "Edit mode selected"), isEditMode: true, isSelected: true, onToggle: {})
     }
     .padding()

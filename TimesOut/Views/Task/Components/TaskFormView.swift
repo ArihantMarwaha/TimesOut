@@ -31,6 +31,8 @@ struct TaskFormView: View {
                         Text("Task Name")
                     } else {
                          Text("Task Details")
+                            .fontWeight(.semibold)
+                            .fontWidth(.expanded)
                     }
                 }
                 
@@ -38,18 +40,26 @@ struct TaskFormView: View {
                     Picker("Priority", selection: $priority) {
                         ForEach(TaskPriority.allCases) { p in
                             Image(systemName: p.icon).tag(p)
+                                .bold()
                         }
                     }
                     .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                 }
+                .fontWeight(.semibold)
+                .fontWidth(.expanded)
                 
-                Section("Schedule") {
+                Section{
                     Toggle("Has Due Date", isOn: $hasDueDate)
                     if hasDueDate {
                         DatePicker("Due Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+   
                     }
+                } header : {
+                    Text("Schedule")
+                        .fontWeight(.semibold)
+                        .fontWidth(.expanded)
                 }
             }
             .navigationTitle(task == nil ? "New Task" : "Edit Task")
@@ -59,6 +69,7 @@ struct TaskFormView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .buttonStyle(.glassProminent)
                     .fontWeight(.semibold)
                     if task == nil {
                         // .buttonStyle(.glassProminent) compilation fails as it requires the button to have it.

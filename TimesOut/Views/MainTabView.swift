@@ -12,9 +12,10 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            ContentView()
+            CalendarMainView()
                 .tabItem {
-                    Image(systemName: "checklist")
+                    Image(systemName: "calendar")
+                    Text("Dashboard")
                 }
                 .tag(Tab.tasks)
             

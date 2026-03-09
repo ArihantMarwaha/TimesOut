@@ -6,10 +6,6 @@ final class TaskDashboardViewModel {
     
     // MARK: - UI State
     var selectedDate: Date = Date()
-    var isEditMode: Bool = false
-    var selectedTaskIDs: Set<UUID> = []
-    var isAddingTask: Bool = false
-    var taskToEdit: TaskItem? = nil
     
     // MARK: - Filtering Logic
     
@@ -67,26 +63,5 @@ final class TaskDashboardViewModel {
         
         // Fallback if completedAt is nil for some reason
         return false
-    }
-    
-    // MARK: - Actions
-    
-    func toggleEditMode() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            isEditMode.toggle()
-            if !isEditMode {
-                selectedTaskIDs.removeAll()
-            }
-        }
-    }
-    
-    func deleteSelectedTasks(context: ModelContext, tasks: [TaskItem]) {
-        withAnimation {
-            for task in tasks where selectedTaskIDs.contains(task.id) {
-                context.delete(task)
-            }
-            try? context.save()
-            selectedTaskIDs.removeAll()
-        }
     }
 }

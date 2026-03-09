@@ -2,73 +2,146 @@ import SwiftUI
 
 struct CalendarBarView: View {
     @Binding var selectedDate: Date
+    @State private var localSelectedDate: Date
     
-    // Generate dates for the current week centered around today (or just a scrollable list of next 30 days)
-    // For simplicity, let's do a 30-day window centered on today.
-    private let dates: [Date] = {
+    @State private var currentScrollID: Int?
+    @Namespace private var animation
+    
+    init(selectedDate: Binding<Date>) {
+        self._selectedDate = selectedDate
+        self._localSelectedDate = State(initialValue: selectedDate.wrappedValue)
+    }
+    
+    // Generate an array of weeks. Each week is an array of 7 Dates.
+    // For simplicity, generate 5 weeks centered around the current week.
+    private let weeks: [[Date]] = {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        var tempDates: [Date] = []
-        for i in -14...14 {
-            if let date = calendar.date(byAdding: .day, value: i, to: today) {
-                tempDates.append(date)
-            }
+        
+        // Find the start of the current week (e.g., Sunday or Monday depending on locale)
+        guard let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)) else {
+            return []
         }
-        return tempDates
+        
+        var tempWeeks: [[Date]] = []
+        for weekOffset in -2...2 {
+            var weekDates: [Date] = []
+            if let thisWeekStart = calendar.date(byAdding: .weekOfYear, value: weekOffset, to: startOfWeek) {
+                for dayOffset in 0..<7 {
+                    if let date = calendar.date(byAdding: .day, value: dayOffset, to: thisWeekStart) {
+                        weekDates.append(date)
+                    }
+                }
+            }
+            tempWeeks.append(weekDates)
+        }
+        return tempWeeks
     }()
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            ScrollViewReader { proxy in
-                HStack(spacing: 12) {
-                    ForEach(dates, id: \.self) { date in
-                        DateCell(date: date, isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate))
+            LazyHStack(spacing: 0) {
+                ForEach(Array(weeks.enumerated()), id: \.offset) { index, week in
+                    HStack(spacing: 0) {
+                        ForEach(week, id: \.self) { date in
+                            DateCell(
+                                date: date,
+                                isSelected: Calendar.current.isDate(date, inSameDayAs: localSelectedDate),
+                                animation: animation
+                            )
                             .onTapGesture {
-                                withAnimation {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                                    localSelectedDate = date
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                                     selectedDate = date
                                 }
                             }
-                            .id(date)
+                            .frame(maxWidth: .infinity) // Distribute evenly
+                        }
                     }
+                    .padding(.horizontal,20)
+                    .frame(width: UIScreen.main.bounds.width)
+                    .id(index)
                 }
-                .padding(.horizontal)
-                .onAppear {
-                    // Scroll to today initially
-                    let today = Calendar.current.startOfDay(for: Date())
-                    proxy.scrollTo(today, anchor: .center)
+            }
+            .scrollTargetLayout()
+            .padding(.top, 60)
+            .padding(.bottom, 10)
+        }
+        .contentMargins(.top, 0, for: .scrollContent)
+        // Use the same radius as the user set for the glass effect (52)
+        .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 32, bottomTrailingRadius: 32))
+        .background {
+            RoundedRectangle(cornerRadius: 0, style:.continuous)
+                .fill(Color.clear)
+                .glassEffect(.regular, in: UnevenRoundedRectangle(bottomLeadingRadius: 32, bottomTrailingRadius: 32))
+                .padding(.top, -500)
+                .padding(.horizontal,-2)
+                .ignoresSafeArea(edges: .top)
+
+        }
+
+        .scrollPosition(id: $currentScrollID)
+        .scrollTargetBehavior(.viewAligned)
+        .onAppear {
+            currentScrollID = 2
+        }
+        .padding(.bottom, 10) // Only leave bottom external padding
+        .fixedSize(horizontal: false, vertical: true)
+        .onChange(of: selectedDate) { _, newValue in
+            if !Calendar.current.isDate(localSelectedDate, inSameDayAs: newValue) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    localSelectedDate = newValue
                 }
             }
         }
-        .padding(.vertical, 10)
     }
 }
 
-// Sub-component for individual date items
 fileprivate struct DateCell: View {
     @AppStorage("app_accent") private var selectedAccent: AppAccentColor = .yellow
     let date: Date
     let isSelected: Bool
+    var animation: Namespace.ID
+    
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
     
     var body: some View {
-        VStack(spacing: 4) {
-            Text(date.formatted(.dateTime.weekday(.abbreviated)))
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundColor(isSelected ? selectedAccent.color : .secondary)
+        VStack(spacing: 5) {
+            Text(date.formatted(.dateTime.weekday(.narrow)))
+                .fontWeight(isSelected ? .bold : .light)
+                .fontWidth(.expanded)
+                .font(.system(size: 16))
+                .fontWeight(.bold)
+                .foregroundColor(isSelected ? .primary : .secondary)
             
             Text(date.formatted(.dateTime.day()))
-                .font(.title3)
-                .fontDesign(.monospaced)
-                .fontWeight(isSelected ? .bold : .regular)
-                .foregroundColor(isSelected ? .primary : .secondary)
+                .font(.system(size: 15))
+                .fontWidth(.expanded)
+                .fontWeight(isSelected ? .bold : .thin)
+                .foregroundColor(isSelected ? .primary : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            
+            // Indicator for today
+            RoundedRectangle(cornerRadius: 10)
+                .fill(isToday ? (isSelected ? .primary.opacity(0.8) : selectedAccent.color) : Color.clear)
+                .frame(width: 8, height: 2)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .glassEffect(.clear, in: .rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(isSelected ? selectedAccent.color.opacity(0.8) : Color.clear, lineWidth: 2)
-        )
+        .frame(minWidth: 45, minHeight: 60) // Fixed size for uniform capsule
+        .padding(.vertical, 0)
+        .background {
+            if isSelected {
+                Color.clear
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .glassEffect(.clear.tint(selectedAccent.color.opacity(0.7)),in:.rect(cornerRadius: 10))
+                    .matchedGeometryEffect(id: "CALENDAR_SELECTION", in: animation)
+            }
+        }
+        .contentShape(Rectangle())
     }
 }
 

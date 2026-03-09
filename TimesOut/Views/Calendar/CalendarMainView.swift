@@ -9,90 +9,63 @@ struct CalendarMainView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // 1. Calendar Bar
-                    CalendarBarView(selectedDate: $viewModel.selectedDate)
-                    
-                    // 2. Daily Summary
-                    DailySummaryBoxView(progress: viewModel.dailyProgress(from: allTasks))
-                    
-                    // 3. Daily Tasks Box
-                    let daily = viewModel.dailyTasks(from: allTasks)
-                    TaskSectionBoxView(
-                        title: "Daily Tasks",
-                        subtitle: viewModel.selectedDate.formatted(.dateTime.weekday().day()),
-                        tasks: daily,
-                        isEditMode: $viewModel.isEditMode,
-                        selectedTaskIDs: $viewModel.selectedTaskIDs,
-                        taskToEdit: $viewModel.taskToEdit
-                    )
-                    
-                    // 4. Long Term Tasks Box
-                    let longTerm = viewModel.longTermTasks(from: allTasks)
-                    if !longTerm.isEmpty {
+            ZStack(alignment: .top) {
+                CalendarBarView(selectedDate: $viewModel.selectedDate)
+                    .zIndex(1)
+                // Scrollable Content layer
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // 2. Daily Summary
+                        DailySummaryBoxView(progress: viewModel.dailyProgress(from: allTasks))
+                            .padding(.top, 145) // Add padding so it starts below the floating calendar
+                        
+                        // 3. Daily Tasks Box
+                        let daily = viewModel.dailyTasks(from: allTasks)
                         TaskSectionBoxView(
-                            title: "Long Term",
-                            subtitle: "Upcoming",
-                            tasks: longTerm,
-                            isEditMode: $viewModel.isEditMode,
-                            selectedTaskIDs: $viewModel.selectedTaskIDs,
-                            taskToEdit: $viewModel.taskToEdit
+                            title: "Daily Tasks",
+                            subtitle: viewModel.selectedDate.formatted(.dateTime.weekday().day()),
+                            tasks: daily,
+                            defaultDueDate: viewModel.selectedDate
                         )
-                    }
-                    
-                    // 5. Create Daily Routine Button placeholder
-                    Button {
-                        // Action for creating a routine
-                    } label: {
-                        HStack {
-                            Image(systemName: "sparkles")
-                            Text("Create Daily Routine")
-                                .fontWeight(.bold)
+                        
+                        // 4. Long Term Tasks Box
+                        let longTerm = viewModel.longTermTasks(from: allTasks)
+                        if !longTerm.isEmpty {
+                            TaskSectionBoxView(
+                                title: "Long Term",
+                                subtitle: "Upcoming",
+                                tasks: longTerm,
+                                defaultDueDate: nil
+                            )
                         }
-                        .foregroundStyle(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue.gradient)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        
+                        // 5. Create Daily Routine Button placeholder
+                        Button {
+                            // Action for creating a routine
+                        } label: {
+                            HStack {
+                                Image(systemName: "sparkles")
+                                Text("Create Daily Routine")
+                                    .fontWeight(.bold)
+                            }
+                            .foregroundStyle(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue.gradient)
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 40)
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    .padding(.bottom, 40)
                 }
+                .background(Color(uiColor: .systemGroupedBackground))
+                
+                // 1. Calendar Bar (Fixed at top, floats over ScrollView)
+              
             }
+            .ignoresSafeArea(edges: .top) // Ignore safe area broadly here
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Dashboard")
-            .toolbarTitleDisplayMode(.inlineLarge)
-            .toolbar {
-                TaskToolbar(
-                    tasks: allTasks,
-                    isEditMode: $viewModel.isEditMode,
-                    selectedTaskIDs: $viewModel.selectedTaskIDs,
-                    isAddingTask: $viewModel.isAddingTask
-                )
-            }
-            .sheet(isPresented: $viewModel.isAddingTask) {
-                TaskFormView { title, priority, dueDate in
-                    let newTask = TaskItem(title: title, priority: priority, dueDate: dueDate)
-                    modelContext.insert(newTask)
-                    try? modelContext.save()
-                }
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-                .withAppTheme()
-            }
-            .sheet(item: $viewModel.taskToEdit) { task in
-                TaskFormView(task: task) { newTitle, newPriority, newDueDate in
-                    task.title = newTitle
-                    task.priority = newPriority
-                    task.dueDate = newDueDate
-                    try? modelContext.save()
-                }
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-                .withAppTheme()
-            }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 }

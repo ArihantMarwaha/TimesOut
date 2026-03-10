@@ -5,8 +5,7 @@ struct TaskSectionBoxView: View {
     let title: String
     let subtitle: String?
     let tasks: [TaskItem]
-    
-    // Properties for Detail View navigation
+
     var defaultDueDate: Date? = nil
     
     @Environment(\.modelContext) private var modelContext
@@ -16,10 +15,14 @@ struct TaskSectionBoxView: View {
     // Prioritize unfinished tasks. If there are fewer than 2 unfinished, fill the rest with completed.
     private var displayTasks: [TaskItem] {
         let unfinished = tasks.filter { !$0.isCompleted }
+            .sorted { $0.priority.rawValue > $1.priority.rawValue }
+            
         if unfinished.count >= 2 {
             return Array(unfinished.prefix(2))
         } else {
             let completed = tasks.filter { $0.isCompleted }
+                .sorted { $0.priority.rawValue > $1.priority.rawValue }
+                
             let combined = unfinished + completed
             return Array(combined.prefix(2))
         }
@@ -28,6 +31,8 @@ struct TaskSectionBoxView: View {
     private var unfinishedCount: Int {
         tasks.filter { !$0.isCompleted }.count
     }
+    
+    @Namespace private var zoomTransition
     
     var body: some View {
         NavigationLink {
@@ -38,6 +43,7 @@ struct TaskSectionBoxView: View {
                 tasks: tasks,
                 defaultDueDate: defaultDueDate
             )
+            .navigationTransition(.zoom(sourceID: title, in: zoomTransition))
         } label: {
             // Summary Card UI
             VStack(alignment: .leading, spacing: 12) {
@@ -58,12 +64,13 @@ struct TaskSectionBoxView: View {
                     
                     // Ratio of completed / total
                     Text("\(tasks.filter { $0.isCompleted }.count)/\(tasks.count)")
-                        .font(.caption)
-                        .fontWeight(.bold)
+                        .font(.system(size: 14))
+                        .fontWeight(.semibold)
+                        .fontWidth(.expanded)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(selectedAccent.color.opacity(0.2))
-                        .foregroundColor(selectedAccent.color)
+                        .background(selectedAccent.color.opacity(0.8))
+                        .foregroundColor(.primary)
                         .clipShape(Capsule())
                 }
                 .padding(.horizontal, 16)
@@ -82,6 +89,7 @@ struct TaskSectionBoxView: View {
                                 task: task,
                                 isEditMode: false,
                                 isSelected: false,
+                                isBoxView: true,
                                 onToggle: {
                                     handleToggle(task: task)
                                 },
@@ -114,13 +122,32 @@ struct TaskSectionBoxView: View {
                 }
             }
             .background {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.5))
-                    .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.5))
+                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                    
+                    // Background track for the border
+                    RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        .stroke(Color.secondary.opacity(0.5), lineWidth: 5)
+                    
+                    // Progress fill overlay
+                    if !tasks.isEmpty {
+                        let completedCount = CGFloat(tasks.filter { $0.isCompleted }.count)
+                        let totalCount = CGFloat(tasks.count)
+                        let progress = completedCount / totalCount
+                        
+                        TopCenterRoundedRectangle(cornerRadius: 30)
+                            .trim(from: 0, to: progress)
+                            .stroke(selectedAccent.color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
+                    }
+                }
             }
+            .matchedTransitionSource(id: title, in: zoomTransition)
             .padding(.horizontal)
         }
-        .buttonStyle(.plain) // Prevent entire card from looking like a default list button
+        .buttonStyle(.plain)
     }
     
     private func handleToggle(task: TaskItem) {
@@ -133,6 +160,62 @@ struct TaskSectionBoxView: View {
             }
             try? modelContext.save()
         }
+    }
+}
+
+struct TopCenterRoundedRectangle: Shape {
+    var cornerRadius: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        
+        let topCenter = CGPoint(x: rect.midX, y: rect.minY)
+        path.move(to: topCenter)
+        
+        // Line to top right corner
+        path.addLine(to: CGPoint(x: rect.maxX - cornerRadius, y: rect.minY))
+        
+        // Top right arc
+        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.minY + cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: .degrees(-90),
+                    endAngle: .degrees(0),
+                    clockwise: false)
+        
+        // Line to bottom right
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - cornerRadius))
+        
+        // Bottom right arc
+        path.addArc(center: CGPoint(x: rect.maxX - cornerRadius, y: rect.maxY - cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: .degrees(0),
+                    endAngle: .degrees(90),
+                    clockwise: false)
+        
+        // Line to bottom left
+        path.addLine(to: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY))
+        
+        // Bottom left arc
+        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.maxY - cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: .degrees(90),
+                    endAngle: .degrees(180),
+                    clockwise: false)
+        
+        // Line to top left
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + cornerRadius))
+        
+        // Top left arc
+        path.addArc(center: CGPoint(x: rect.minX + cornerRadius, y: rect.minY + cornerRadius),
+                    radius: cornerRadius,
+                    startAngle: .degrees(180),
+                    endAngle: .degrees(270),
+                    clockwise: false)
+        
+        // Back to top center
+        path.addLine(to: topCenter)
+        
+        return path
     }
 }
 

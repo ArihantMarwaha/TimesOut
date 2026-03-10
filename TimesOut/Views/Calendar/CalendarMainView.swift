@@ -17,8 +17,7 @@ struct CalendarMainView: View {
                     VStack(spacing: 24) {
                         // 2. Daily Summary
                         DailySummaryBoxView(progress: viewModel.dailyProgress(from: allTasks))
-                            .padding(.top, 145) // Add padding so it starts below the floating calendar
-                        
+                            .padding(.top, 145)
                         // 3. Daily Tasks Box
                         let daily = viewModel.dailyTasks(from: allTasks)
                         TaskSectionBoxView(
@@ -57,13 +56,11 @@ struct CalendarMainView: View {
                         .padding(.horizontal)
                         .padding(.bottom, 40)
                     }
+                    .animation(.smooth(duration: 0.25), value: viewModel.selectedDate)
                 }
                 .background(Color(uiColor: .systemGroupedBackground))
-                
-                // 1. Calendar Bar (Fixed at top, floats over ScrollView)
-              
             }
-            .ignoresSafeArea(edges: .top) // Ignore safe area broadly here
+            .ignoresSafeArea(edges: .top)
             .background(Color(uiColor: .systemGroupedBackground))
             .toolbar(.hidden, for: .navigationBar)
         }

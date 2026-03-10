@@ -60,34 +60,49 @@ struct CalendarBarView: View {
                             .frame(maxWidth: .infinity) // Distribute evenly
                         }
                     }
-                    .padding(.horizontal,20)
+                    .padding(.horizontal,30)
                     .frame(width: UIScreen.main.bounds.width)
                     .id(index)
                 }
             }
             .scrollTargetLayout()
-            .padding(.top, 60)
+            .padding(.top, 70)
             .padding(.bottom, 10)
         }
         .contentMargins(.top, 0, for: .scrollContent)
-        // Use the same radius as the user set for the glass effect (52)
-        .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 32, bottomTrailingRadius: 32))
+        .overlay {
+            HStack {
+                Image(systemName: "chevron.backward")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .padding(.leading, 15)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.forward")
+                    .font(.body.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .padding(.trailing, 15)
+            }
+            .padding(.top, 45) // Adjust to vertically align with the date cells
+            // We use .allowsHitTesting(false) so they don't block scroll gestures
+            .allowsHitTesting(false)
+        }
+        .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 42, bottomTrailingRadius: 42))
         .background {
             RoundedRectangle(cornerRadius: 0, style:.continuous)
                 .fill(Color.clear)
-                .glassEffect(.regular, in: UnevenRoundedRectangle(bottomLeadingRadius: 32, bottomTrailingRadius: 32))
-                .padding(.top, -500)
-                .padding(.horizontal,-2)
+                .glassEffect(.regular, in: UnevenRoundedRectangle(bottomLeadingRadius: 42, bottomTrailingRadius: 42))
+                .padding(.top, -450)
+                .padding(.horizontal,-5)
                 .ignoresSafeArea(edges: .top)
-
         }
-
         .scrollPosition(id: $currentScrollID)
         .scrollTargetBehavior(.viewAligned)
         .onAppear {
             currentScrollID = 2
         }
-        .padding(.bottom, 10) // Only leave bottom external padding
+        .padding(.bottom, 20) // Only leave bottom external padding
         .fixedSize(horizontal: false, vertical: true)
         .onChange(of: selectedDate) { _, newValue in
             if !Calendar.current.isDate(localSelectedDate, inSameDayAs: newValue) {
@@ -114,12 +129,12 @@ fileprivate struct DateCell: View {
             Text(date.formatted(.dateTime.weekday(.narrow)))
                 .fontWeight(isSelected ? .bold : .light)
                 .fontWidth(.expanded)
-                .font(.system(size: 16))
+                .font(.system(size: 18))
                 .fontWeight(.bold)
                 .foregroundColor(isSelected ? .primary : .secondary)
             
             Text(date.formatted(.dateTime.day()))
-                .font(.system(size: 15))
+                .font(.system(size: 16))
                 .fontWidth(.expanded)
                 .fontWeight(isSelected ? .bold : .thin)
                 .foregroundColor(isSelected ? .primary : .primary)
@@ -135,9 +150,10 @@ fileprivate struct DateCell: View {
         .padding(.vertical, 0)
         .background {
             if isSelected {
-                Color.clear
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    .glassEffect(.clear.tint(selectedAccent.color.opacity(0.7)),in:.rect(cornerRadius: 10))
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.clear)
+                    .glassEffect(.clear.tint(selectedAccent.color.opacity(0.7)), in: .rect(cornerRadius: 10))
+                    .compositingGroup()
                     .matchedGeometryEffect(id: "CALENDAR_SELECTION", in: animation)
             }
         }

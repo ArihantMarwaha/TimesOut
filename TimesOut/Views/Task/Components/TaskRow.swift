@@ -5,6 +5,7 @@ struct TaskRow: View {
     let task: TaskItem
     var isEditMode: Bool = false
     var isSelected: Bool = false
+    var isBoxView: Bool = false
     let onToggle: () -> Void
     var onEdit: (() -> Void)? = nil
     
@@ -15,7 +16,8 @@ struct TaskRow: View {
         return false
     }
 
-    var body: some View {
+    @ViewBuilder
+    private var rowContent: some View {
         HStack(spacing: 16) {
             // Multi-select circle (edit mode) or completion checkbox (normal mode)
             Image(systemName: isEditMode
@@ -28,6 +30,10 @@ struct TaskRow: View {
                              : (task.isCompleted ? selectedAccent.color : .gray))
             .contentTransition(.symbolEffect(.replace))
             .frame(width: 28, height: 28)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onToggle()
+            }
             
             // Task title and details
             VStack(alignment: .leading, spacing: 6) {
@@ -72,11 +78,19 @@ struct TaskRow: View {
         }
         .opacity((isOverdue && !isEditMode) ? 0.6 : 1.0)
         .contentShape(Rectangle())
-        .onTapGesture {
-            onToggle()
-        }
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isEditMode)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isSelected)
+    }
+
+    var body: some View {
+        if isBoxView {
+            rowContent
+        } else {
+            rowContent
+                .onTapGesture {
+                    onToggle()
+                }
+        }
     }
 }
 

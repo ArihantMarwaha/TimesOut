@@ -41,7 +41,7 @@ struct TaskSectionDetailView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.large)
+        .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
             TaskToolbar(
                 tasks: tasks,

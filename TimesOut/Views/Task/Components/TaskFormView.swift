@@ -1,23 +1,40 @@
 import SwiftUI
 
+struct DraftSubtask: Identifiable, Equatable {
+    let id: UUID
+    var title: String
+    var isCompleted: Bool
+    
+    init(id: UUID = UUID(), title: String, isCompleted: Bool = false) {
+        self.id = id
+        self.title = title
+        self.isCompleted = isCompleted
+    }
+}
+
 struct TaskFormView: View {
     let task: TaskItem?
-    let onSave: (String, TaskPriority, Date?) -> Void
+    let onSave: (String, TaskPriority, Date?, [DraftSubtask]) -> Void
     
     @State private var editedTitle: String
     @State private var priority: TaskPriority
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
+    @State private var draftSubtasks: [DraftSubtask]
+    @State private var newSubtaskTitle: String = ""
+    
     @Environment(\.dismiss) private var dismiss
     @AppStorage("app_accent") private var selectedAccent: AppAccentColor = .yellow
     
-    init(task: TaskItem? = nil, onSave: @escaping (String, TaskPriority, Date?) -> Void) {
+    init(task: TaskItem? = nil, onSave: @escaping (String, TaskPriority, Date?, [DraftSubtask]) -> Void) {
         self.task = task
         self.onSave = onSave
         self._editedTitle = State(initialValue: task?.title ?? "")
         self._priority = State(initialValue: task?.priority ?? .medium)
         self._hasDueDate = State(initialValue: task?.dueDate != nil)
         self._dueDate = State(initialValue: task?.dueDate ?? Date())
+        let existingSubtasks = task?.subtasks?.map { DraftSubtask(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) } ?? []
+        self._draftSubtasks = State(initialValue: existingSubtasks)
     }
     
     var body: some View {
@@ -61,6 +78,47 @@ struct TaskFormView: View {
                         .fontWeight(.semibold)
                         .fontWidth(.expanded)
                 }
+                
+                Section("Subtasks") {
+                    HStack {
+                        Image(systemName: "circle.dashed")
+                            .foregroundColor(.secondary)
+                        TextField("New subtask", text: $newSubtaskTitle)
+                            .onSubmit {
+                                addSubtask()
+                            }
+                            .fontDesign(.monospaced)
+                            .fontWeight(.regular)
+                        if !newSubtaskTitle.isEmpty {
+                            Button(action: addSubtask) {
+                                Image(systemName: "plus.circle.fill")
+                                    .foregroundColor(selectedAccent.color)
+                            }
+                        }
+                    }
+                    
+                    ForEach($draftSubtasks) { $subtask in
+                        HStack {
+                            Button {
+                                subtask.isCompleted.toggle()
+                            } label: {
+                                Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .foregroundColor(subtask.isCompleted ? selectedAccent.color : .secondary)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            TextField("Subtask", text: $subtask.title)
+                                .strikethrough(subtask.isCompleted)
+                                .foregroundColor(subtask.isCompleted ? .secondary : .primary)
+                        }
+                    }
+                    .onDelete { indexSet in
+                        draftSubtasks.remove(atOffsets: indexSet)
+                    }
+                }
+                .fontWeight(.semibold)
+                .fontWidth(.expanded)
+                
             }
             .navigationTitle(task == nil ? "New Task" : "Edit Task")
             .navigationBarTitleDisplayMode(.inline)
@@ -71,13 +129,6 @@ struct TaskFormView: View {
                     }
                     .buttonStyle(.glassProminent)
                     .fontWeight(.semibold)
-                    if task == nil {
-                        // .buttonStyle(.glassProminent) compilation fails as it requires the button to have it.
-                        // Can't apply conditionally without an external modifier or AnyView easily.
-                        // Let's just apply it unconditionally or conditionally via a wrapper block?
-                        // Actually, I can just not apply it, or apply it if it looks good on both.
-                        // Wait, let's keep it simple and just do it correctly. 
-                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if task == nil {
@@ -97,18 +148,28 @@ struct TaskFormView: View {
             }
             .withAppTheme()
         }
+        .presentationDetents([.fraction(0.70)])
+        .presentationDragIndicator(.hidden)
+    }
+    
+    private func addSubtask() {
+        let trimmed = newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            draftSubtasks.append(DraftSubtask(title: trimmed))
+            newSubtaskTitle = ""
+        }
     }
     
     private func saveTask() {
         let trimmed = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
-            onSave(trimmed, priority, hasDueDate ? dueDate : nil)
+            onSave(trimmed, priority, hasDueDate ? dueDate : nil, draftSubtasks)
         }
         dismiss()
     }
 }
 
 #Preview {
-    TaskFormView(onSave: { _, _, _ in })
+    TaskFormView(onSave: { _, _, _, _ in })
         .withAppTheme()
 }

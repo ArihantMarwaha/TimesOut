@@ -16,6 +16,7 @@ struct TaskListView: View {
                     task: task,
                     isEditMode: isEditMode,
                     isSelected: selectedTaskIDs.contains(task.id),
+                    isExpanded: .constant(false),
                     onToggle: {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                             if isEditMode {

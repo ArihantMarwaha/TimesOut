@@ -17,9 +17,23 @@ struct TaskSectionDetailView: View {
     @State private var isAddingTask = false
     @State private var taskToEdit: TaskItem? = nil
     
+    var sortedTasks: [TaskItem] {
+        tasks.sorted {
+            if $0.isCompleted != $1.isCompleted {
+                return !$0.isCompleted && $1.isCompleted
+            }
+            if $0.priority.rawValue != $1.priority.rawValue {
+                return $0.priority.rawValue > $1.priority.rawValue
+            }
+            return $0.createdAt > $1.createdAt
+        }
+    }
+    
+    @State private var expandedTaskIDs: Set<UUID> = []
+    
     var body: some View {
         List {
-            if tasks.isEmpty {
+            if sortedTasks.isEmpty {
                 ContentUnavailableView(
                     "No Tasks",
                     systemImage: "checklist",
@@ -27,15 +41,42 @@ struct TaskSectionDetailView: View {
                 )
                 .listRowBackground(Color.clear)
             } else {
-                ForEach(tasks) { task in
+                ForEach(sortedTasks) { task in
+                    let isExpandedBinding = Binding<Bool>(
+                        get: { expandedTaskIDs.contains(task.id) },
+                        set: { newValue in
+                            if newValue {
+                                expandedTaskIDs.insert(task.id)
+                            } else {
+                                expandedTaskIDs.remove(task.id)
+                            }
+                        }
+                    )
+                    
                     TaskRow(
                         task: task,
                         isEditMode: isEditMode,
                         isSelected: selectedTaskIDs.contains(task.id),
+                        isExpanded: isExpandedBinding,
                         onToggle: { handleToggle(task: task) },
                         onEdit: { taskToEdit = task }
                     )
                     .listRowBackground(Color.clear)
+                    
+                    // Render subtasks as separate list rows
+                    if expandedTaskIDs.contains(task.id),
+                       let subtasks = task.subtasks, !subtasks.isEmpty {
+                        let sorted = subtasks.sorted {
+                            if $0.isCompleted != $1.isCompleted {
+                                return !$0.isCompleted && $1.isCompleted
+                            }
+                            return $0.createdAt < $1.createdAt
+                        }
+                        ForEach(sorted) { subtask in
+                            SubtaskRow(subtask: subtask, parentTask: task)
+                                .listRowBackground(Color.clear)
+                        }
+                    }
                 }
             }
         }
@@ -51,24 +92,50 @@ struct TaskSectionDetailView: View {
             )
         }
         .sheet(isPresented: $isAddingTask) {
-            TaskFormView { newTitle, newPriority, dueDate in
+            TaskFormView { newTitle, newPriority, dueDate, draftSubtasks in
                 // If a user is adding from the "Daily" section, we might want to default the date.
                 // But TaskFormView handles its own internal Date state based on the optional TaskItem.
                 // Let's just create it directly:
                 let task = TaskItem(title: newTitle, priority: newPriority, dueDate: dueDate ?? defaultDueDate)
+                if !draftSubtasks.isEmpty {
+                    task.subtasks = draftSubtasks.map { SubtaskItem(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) }
+                }
                 modelContext.insert(task)
                 try? modelContext.save()
             }
-            .presentationDetents([.medium])
         }
         .sheet(item: $taskToEdit) { task in
-            TaskFormView(task: task) { newTitle, newPriority, newDueDate in
+            TaskFormView(task: task) { newTitle, newPriority, newDueDate, newDrafts in
                 task.title = newTitle
                 task.priority = newPriority
                 task.dueDate = newDueDate
+                
+                // Reconcile subtasks
+                let existingSubtasks = task.subtasks ?? []
+                for draft in newDrafts {
+                    if let existing = existingSubtasks.first(where: { $0.id == draft.id }) {
+                        existing.title = draft.title
+                        existing.isCompleted = draft.isCompleted
+                    } else {
+                        let newSubtask = SubtaskItem(id: draft.id, title: draft.title, isCompleted: draft.isCompleted)
+                        if task.subtasks == nil { task.subtasks = [] }
+                        task.subtasks?.append(newSubtask)
+                    }
+                }
+                
+                // Remove deleted subtasks
+                let draftIDs = Set(newDrafts.map { $0.id })
+                if let subtasks = task.subtasks {
+                    for subtask in subtasks {
+                        if !draftIDs.contains(subtask.id) {
+                            modelContext.delete(subtask)
+                            task.subtasks?.removeAll(where: { $0.id == subtask.id })
+                        }
+                    }
+                }
+                
                 try? modelContext.save()
             }
-            .presentationDetents([.medium])
         }
     }
     

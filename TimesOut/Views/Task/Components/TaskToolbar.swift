@@ -34,7 +34,7 @@ struct TaskToolbar: ToolbarContent {
             }
         }
         
-        // This is a custom element observed in the Main app
+
         ToolbarSpacer()
         
         ToolbarItem {

@@ -43,7 +43,6 @@ struct TaskSectionBoxView: View {
                 tasks: tasks,
                 defaultDueDate: defaultDueDate
             )
-            .navigationTransition(.zoom(sourceID: title, in: zoomTransition))
         } label: {
             // Summary Card UI
             VStack(alignment: .leading, spacing: 12) {
@@ -90,6 +89,7 @@ struct TaskSectionBoxView: View {
                                 isEditMode: false,
                                 isSelected: false,
                                 isBoxView: true,
+                                isExpanded: .constant(false),
                                 onToggle: {
                                     handleToggle(task: task)
                                 },
@@ -144,7 +144,6 @@ struct TaskSectionBoxView: View {
                     }
                 }
             }
-            .matchedTransitionSource(id: title, in: zoomTransition)
             .padding(.horizontal)
         }
         .buttonStyle(.plain)

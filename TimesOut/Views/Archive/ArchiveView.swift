@@ -30,6 +30,7 @@ struct ArchiveView: View {
                             task: task,
                             isEditMode: false,
                             isSelected: false,
+                            isExpanded: .constant(false),
                             onToggle: {
                                 // Un-archiving or un-completing
                                 withAnimation {
@@ -52,7 +53,8 @@ struct ArchiveView: View {
                 }
             }
             .listStyle(.automatic)
-            .navigationTitle("Archive")
+            .navigationTitle("Archived Tasks")
+            .toolbarTitleDisplayMode(.inlineLarge)
         }
     }
 }

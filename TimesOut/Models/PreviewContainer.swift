@@ -18,10 +18,25 @@ let previewContainer: ModelContainer = {
             // Completed 2 days ago
             sample4.completedAt = Date().addingTimeInterval(-86400 * 2)
             
+            // Tasks with subtasks
+            let sample5 = TaskItem(title: "Launch MVP", priority: .high, dueDate: Date().addingTimeInterval(3600 * 48))
+            let sub1 = SubtaskItem(title: "Finalize UI polish")
+            let sub2 = SubtaskItem(title: "Write unit tests")
+            let sub3 = SubtaskItem(title: "Submit to TestFlight", isCompleted: true)
+            sample5.subtasks = [sub1, sub2, sub3]
+            
+            let sample6 = TaskItem(title: "Morning Routine", priority: .medium)
+            let sub4 = SubtaskItem(title: "Meditate 10 mins", isCompleted: true)
+            let sub5 = SubtaskItem(title: "Workout 30 mins")
+            let sub6 = SubtaskItem(title: "Read 20 pages")
+            sample6.subtasks = [sub4, sub5, sub6]
+            
             context.insert(sample1)
             context.insert(sample2)
             context.insert(sample3)
             context.insert(sample4)
+            context.insert(sample5)
+            context.insert(sample6)
             
             try? context.save()
         }

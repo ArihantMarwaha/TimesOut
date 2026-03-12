@@ -3,6 +3,7 @@ import SwiftData
 
 enum Tab: String {
     case tasks
+    case routine
     case archive
     case settings
 }
@@ -15,9 +16,14 @@ struct MainTabView: View {
             CalendarMainView()
                 .tabItem {
                     Image(systemName: "calendar")
-                    Text("Dashboard")
                 }
                 .tag(Tab.tasks)
+            
+            RoutineView()
+                .tabItem {
+                    Image(systemName: "sparkles")
+                }
+                .tag(Tab.routine)
             
             ArchiveView()
                 .tabItem {

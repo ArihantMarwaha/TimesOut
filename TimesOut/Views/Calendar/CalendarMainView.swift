@@ -18,6 +18,7 @@ struct CalendarMainView: View {
                         // 2. Daily Summary
                         DailySummaryBoxView(progress: viewModel.dailyProgress(from: allTasks))
                             .padding(.top, 145)
+                        
                         // 3. Daily Tasks Box
                         let daily = viewModel.dailyTasks(from: allTasks)
                         TaskSectionBoxView(
@@ -37,24 +38,6 @@ struct CalendarMainView: View {
                                 defaultDueDate: nil
                             )
                         }
-                        
-                        // 5. Create Daily Routine Button placeholder
-                        Button {
-                            // Action for creating a routine
-                        } label: {
-                            HStack {
-                                Image(systemName: "sparkles")
-                                Text("Create Daily Routine")
-                                    .fontWeight(.bold)
-                            }
-                            .foregroundStyle(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.blue.gradient)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 40)
                     }
                     .animation(.smooth(duration: 0.25), value: viewModel.selectedDate)
                 }

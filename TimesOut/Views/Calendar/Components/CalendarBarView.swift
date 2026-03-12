@@ -24,7 +24,7 @@ struct CalendarBarView: View {
         }
         
         var tempWeeks: [[Date]] = []
-        for weekOffset in -2...2 {
+        for weekOffset in -52...52 {
             var weekDates: [Date] = []
             if let thisWeekStart = calendar.date(byAdding: .weekOfYear, value: weekOffset, to: startOfWeek) {
                 for dayOffset in 0..<7 {
@@ -44,6 +44,10 @@ struct CalendarBarView: View {
                 ForEach(Array(weeks.enumerated()), id: \.offset) { index, week in
                     HStack(spacing: 0) {
                         ForEach(week, id: \.self) { date in
+                            if Calendar.current.component(.day, from: date) == 1 {
+                                MonthIndicator(date: date)
+                            }
+                            
                             DateCell(
                                 date: date,
                                 isSelected: Calendar.current.isDate(date, inSameDayAs: localSelectedDate),
@@ -57,10 +61,10 @@ struct CalendarBarView: View {
                                     selectedDate = date
                                 }
                             }
-                            .frame(maxWidth: .infinity) // Distribute evenly
+                            .frame(maxWidth: .infinity)
                         }
                     }
-                    .padding(.horizontal,30)
+                    .padding(.horizontal,50)
                     .frame(width: UIScreen.main.bounds.width)
                     .id(index)
                 }
@@ -72,21 +76,39 @@ struct CalendarBarView: View {
         .contentMargins(.top, 0, for: .scrollContent)
         .overlay {
             HStack {
-                Image(systemName: "chevron.backward")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 15)
+                Button {
+                    if let id = currentScrollID, id > 0 {
+                        withAnimation {
+                            currentScrollID = id - 1
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.backward")
+                        .font(.body.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .padding(.leading, 10)
                 
                 Spacer()
                 
-                Image(systemName: "chevron.forward")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .padding(.trailing, 15)
+                Button {
+                    if let id = currentScrollID, id < weeks.count - 1 {
+                        withAnimation {
+                            currentScrollID = id + 1
+                        }
+                    }
+                } label: {
+                    Image(systemName: "chevron.forward")
+                        .font(.body.weight(.bold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .padding(.trailing, 10)
             }
             .padding(.top, 45) // Adjust to vertically align with the date cells
-            // We use .allowsHitTesting(false) so they don't block scroll gestures
-            .allowsHitTesting(false)
         }
         .clipShape(UnevenRoundedRectangle(bottomLeadingRadius: 42, bottomTrailingRadius: 42))
         .background {
@@ -100,7 +122,7 @@ struct CalendarBarView: View {
         .scrollPosition(id: $currentScrollID)
         .scrollTargetBehavior(.viewAligned)
         .onAppear {
-            currentScrollID = 2
+            currentScrollID = 52
         }
         .padding(.bottom, 20) // Only leave bottom external padding
         .fixedSize(horizontal: false, vertical: true)
@@ -111,6 +133,26 @@ struct CalendarBarView: View {
                 }
             }
         }
+    }
+}
+
+fileprivate struct MonthIndicator: View {
+    @AppStorage("app_accent") private var selectedAccent: AppAccentColor = .yellow
+    let date: Date
+    
+    var body: some View {
+        VStack(spacing: 5) {
+            Text(date.formatted(.dateTime.month(.defaultDigits)))
+                .font(.system(size: 10, weight: .heavy))
+                .fontWidth(.expanded)
+                .foregroundStyle(Color.primary)
+            
+            Rectangle()
+                .fill(selectedAccent.color)
+                .frame(width: 1, height: 18)
+                .cornerRadius(1)
+        }
+        .frame(width: 35) // Fixed width to separate from DateCells
     }
 }
 
@@ -129,12 +171,12 @@ fileprivate struct DateCell: View {
             Text(date.formatted(.dateTime.weekday(.narrow)))
                 .fontWeight(isSelected ? .bold : .light)
                 .fontWidth(.expanded)
-                .font(.system(size: 18))
+                .font(.system(size: 12))
                 .fontWeight(.bold)
                 .foregroundColor(isSelected ? .primary : .secondary)
             
             Text(date.formatted(.dateTime.day()))
-                .font(.system(size: 16))
+                .font(.system(size: 14))
                 .fontWidth(.expanded)
                 .fontWeight(isSelected ? .bold : .thin)
                 .foregroundColor(isSelected ? .primary : .primary)
@@ -146,13 +188,13 @@ fileprivate struct DateCell: View {
                 .fill(isToday ? (isSelected ? .primary.opacity(0.8) : selectedAccent.color) : Color.clear)
                 .frame(width: 8, height: 2)
         }
-        .frame(minWidth: 45, minHeight: 60) // Fixed size for uniform capsule
-        .padding(.vertical, 0)
+        .frame(height: 55)
+        .frame(maxWidth: .infinity)
         .background {
             if isSelected {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Color.clear)
-                    .glassEffect(.clear.tint(selectedAccent.color.opacity(0.7)), in: .rect(cornerRadius: 10))
+                    .glassEffect(.clear.tint(selectedAccent.color.opacity(0.8)), in: .rect(cornerRadius: 13))
                     .compositingGroup()
                     .matchedGeometryEffect(id: "CALENDAR_SELECTION", in: animation)
             }

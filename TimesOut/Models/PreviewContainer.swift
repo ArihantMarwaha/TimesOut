@@ -4,8 +4,22 @@ import SwiftData
 @MainActor
 let previewContainer: ModelContainer = {
     do {
-        let container = try ModelContainer(for: TaskItem.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let container = try ModelContainer(for: TaskItem.self, Routine.self, RoutineTask.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
         let context = container.mainContext
+        if try context.fetch(FetchDescriptor<Routine>()).isEmpty {
+            // Sample Routines
+            let morningRoutine = Routine(title: "Morning Flow", icon: "sun.max.fill", accentColor: "orange")
+            let task1 = RoutineTask(title: "Morning Meditation", priority: .medium, parentRoutine: morningRoutine, subtaskTitles: ["Breathe deep", "Clear mind"])
+            let task2 = RoutineTask(title: "Yoga Flow", priority: .high, parentRoutine: morningRoutine)
+            
+            let workRoutine = Routine(title: "Deep Work", icon: "brain.head.profile", accentColor: "purple")
+            let task3 = RoutineTask(title: "Code Review", priority: .medium, parentRoutine: workRoutine)
+            let task4 = RoutineTask(title: "Feature Implementation", priority: .high, parentRoutine: workRoutine)
+            
+            context.insert(morningRoutine)
+            context.insert(workRoutine)
+        }
+        
         if try context.fetch(FetchDescriptor<TaskItem>()).isEmpty {
             let sample1 = TaskItem(title: "Build Pomodoro Timer", priority: .high, dueDate: Date().addingTimeInterval(3600 * 24))
             let sample2 = TaskItem(title: "Review Design Tweaks", priority: .medium)

@@ -46,6 +46,52 @@ final class TaskDashboardViewModel {
         return Double(completed) / Double(daily.count)
     }
     
+    // MARK: - Routine Actions
+    
+    /// Checks if a routine is already applied for the selectedDate.
+    func isRoutineApplied(_ routine: Routine, allTasks: [TaskItem]) -> Bool {
+        return allTasks.contains { task in
+            guard let originID = task.originRoutineID, let dueDate = task.dueDate else { return false }
+            return originID == routine.id && Calendar.current.isDate(dueDate, inSameDayAs: selectedDate)
+        }
+    }
+    
+    /// Toggles routine application: adds tasks if not present, removes them if they are.
+    func toggleRoutine(_ routine: Routine, context: ModelContext, allTasks: [TaskItem]) {
+        let appliedTasks = allTasks.filter { task in
+            guard let originID = task.originRoutineID, let dueDate = task.dueDate else { return false }
+            return originID == routine.id && Calendar.current.isDate(dueDate, inSameDayAs: selectedDate)
+        }
+        
+        if !appliedTasks.isEmpty {
+            // Deselect: Remove the tasks
+            for task in appliedTasks {
+                context.delete(task)
+            }
+        } else {
+            // Select: Add the tasks
+            let tasks = routine.tasks ?? []
+            let dueDate = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: selectedDate) ?? selectedDate
+            
+            for routineTask in tasks {
+                let newTask = TaskItem(
+                    title: routineTask.title,
+                    priority: routineTask.priority,
+                    dueDate: dueDate,
+                    originRoutineID: routine.id
+                )
+                
+                if !routineTask.subtaskTitles.isEmpty {
+                    newTask.subtasks = routineTask.subtaskTitles.map { SubtaskItem(title: $0) }
+                }
+                
+                context.insert(newTask)
+            }
+        }
+        
+        try? context.save()
+    }
+    
     // MARK: - Helpers
     
     /// Helper to determine if a task should be visible in active views (not archived).

@@ -10,16 +10,17 @@ enum Tab: String {
 
 struct MainTabView: View {
     @AppStorage("selected_tab") private var selectedTab: Tab = .tasks
+    @State private var viewModel = TaskDashboardViewModel()
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            CalendarMainView()
+            CalendarMainView(viewModel: viewModel)
                 .tabItem {
                     Image(systemName: "calendar")
                 }
                 .tag(Tab.tasks)
             
-            RoutineView()
+            RoutineView(viewModel: viewModel)
                 .tabItem {
                     Image(systemName: "sparkles")
                 }

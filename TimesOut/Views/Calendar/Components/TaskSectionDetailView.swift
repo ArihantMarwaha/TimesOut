@@ -78,7 +78,9 @@ struct TaskSectionDetailView: View {
                         }
                     }
                 }
+                
             }
+            
         }
         .listStyle(.insetGrouped)
         .navigationTitle(title)
@@ -94,9 +96,17 @@ struct TaskSectionDetailView: View {
         .sheet(isPresented: $isAddingTask) {
             TaskFormView { newTitle, newPriority, dueDate, draftSubtasks in
                 // If a user is adding from the "Daily" section, we might want to default the date.
-                // But TaskFormView handles its own internal Date state based on the optional TaskItem.
-                // Let's just create it directly:
-                let task = TaskItem(title: newTitle, priority: newPriority, dueDate: dueDate ?? defaultDueDate)
+                // We ensure it defaults to the end of the day (23:59:59) so it's not immediately overdue.
+                let finalDueDate: Date?
+                if let explicitDate = dueDate {
+                    finalDueDate = explicitDate
+                } else if let fallback = defaultDueDate {
+                    finalDueDate = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: fallback) ?? fallback
+                } else {
+                    finalDueDate = nil
+                }
+                
+                let task = TaskItem(title: newTitle, priority: newPriority, dueDate: finalDueDate)
                 if !draftSubtasks.isEmpty {
                     task.subtasks = draftSubtasks.map { SubtaskItem(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) }
                 }

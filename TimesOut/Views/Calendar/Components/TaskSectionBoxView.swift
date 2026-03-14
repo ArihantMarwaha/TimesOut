@@ -32,8 +32,8 @@ struct TaskSectionBoxView: View {
         tasks.filter { !$0.isCompleted }.count
     }
     
-    @Namespace private var zoomTransition
     
+
     var body: some View {
         NavigationLink {
             // Push to the new Detail Workspace
@@ -76,11 +76,20 @@ struct TaskSectionBoxView: View {
                 .padding(.top, 16)
                 
                 if tasks.isEmpty {
-                    Text("All caught up!")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    HStack{
+                        Text("All caught up")
+                            .font(.system(size: 20))
+                            .fontDesign(.monospaced)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.secondary)
+                    }
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: displayTasks)
+                    .padding(30)
+                    .padding(.bottom)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(displayTasks) { task in
@@ -118,35 +127,35 @@ struct TaskSectionBoxView: View {
                                 .padding(.top, 4)
                         }
                     }
+                    .animation(.spring(response: 0.3, dampingFraction: 0.6), value: displayTasks)
                     .padding(.bottom, 16)
                 }
             }
+     
             .background {
                 ZStack {
                     RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .fill(Color(uiColor: .secondarySystemGroupedBackground).opacity(0.5))
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                        .fill(Color.clear)
+                        .glassEffect(.regular,in: .rect(cornerRadius: 30))
+                      //  .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
                     
                     // Background track for the border
                     RoundedRectangle(cornerRadius: 30, style: .continuous)
                         .stroke(Color.secondary.opacity(0.5), lineWidth: 5)
                     
                     // Progress fill overlay
-                    if !tasks.isEmpty {
-                        let completedCount = CGFloat(tasks.filter { $0.isCompleted }.count)
-                        let totalCount = CGFloat(tasks.count)
-                        let progress = completedCount / totalCount
-                        
-                        TopCenterRoundedRectangle(cornerRadius: 30)
-                            .trim(from: 0, to: progress)
-                            .stroke(selectedAccent.color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
-                    }
+                    let progress: CGFloat = tasks.isEmpty ? 0 : CGFloat(tasks.filter { $0.isCompleted }.count) / CGFloat(tasks.count)
+                    
+                    TopCenterRoundedRectangle(cornerRadius: 30)
+                        .trim(from: 0, to: progress)
+                        .stroke(selectedAccent.color, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
                 }
             }
             .padding(.horizontal)
         }
         .buttonStyle(.plain)
+
     }
     
     private func handleToggle(task: TaskItem) {
@@ -218,7 +227,7 @@ struct TopCenterRoundedRectangle: Shape {
     }
 }
 
-#Preview {
+#Preview("Populated") {
     NavigationStack {
         TaskSectionBoxView(
             title: "Daily Tasks",
@@ -230,6 +239,18 @@ struct TopCenterRoundedRectangle: Shape {
         )
     }
     .padding(.vertical)
+    .withAppTheme()
+    .modelContainer(previewContainer)
+}
+
+#Preview("Empty State") {
+    NavigationStack {
+        TaskSectionBoxView(
+            title: "Daily Tasks",
+            subtitle: "Today",
+            tasks: []
+        )
+    }
     .withAppTheme()
     .modelContainer(previewContainer)
 }

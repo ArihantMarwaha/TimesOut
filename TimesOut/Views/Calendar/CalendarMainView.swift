@@ -4,10 +4,12 @@ import SwiftData
 struct CalendarMainView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \TaskItem.createdAt, order: .reverse) private var allTasks: [TaskItem]
+    @Query(sort: \Routine.createdAt, order: .reverse) private var routines: [Routine]
     
-    @State private var viewModel = TaskDashboardViewModel()
+    var viewModel: TaskDashboardViewModel
     
     var body: some View {
+        @Bindable var viewModel = viewModel
         NavigationStack {
             ZStack(alignment: .top) {
                 CalendarBarView(selectedDate: $viewModel.selectedDate)
@@ -17,7 +19,7 @@ struct CalendarMainView: View {
                     VStack(spacing: 24) {
                         // 2. Daily Summary
                         DailySummaryBoxView(progress: viewModel.dailyProgress(from: allTasks))
-                            .padding(.top, 145)
+                            .padding(.top, 150)
                         
                         // 3. Daily Tasks Box
                         let daily = viewModel.dailyTasks(from: allTasks)
@@ -30,14 +32,14 @@ struct CalendarMainView: View {
                         
                         // 4. Long Term Tasks Box
                         let longTerm = viewModel.longTermTasks(from: allTasks)
-                        if !longTerm.isEmpty {
+                       // if !longTerm.isEmpty {
                             TaskSectionBoxView(
                                 title: "Long Term",
                                 subtitle: "Upcoming",
                                 tasks: longTerm,
                                 defaultDueDate: nil
                             )
-                        }
+                 //       }
                     }
                     .animation(.smooth(duration: 0.25), value: viewModel.selectedDate)
                 }
@@ -51,7 +53,7 @@ struct CalendarMainView: View {
 }
 
 #Preview {
-    CalendarMainView()
+    CalendarMainView(viewModel: TaskDashboardViewModel())
         .withAppTheme()
         .modelContainer(previewContainer)
 }

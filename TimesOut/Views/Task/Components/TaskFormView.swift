@@ -32,7 +32,17 @@ struct TaskFormView: View {
         self._editedTitle = State(initialValue: task?.title ?? "")
         self._priority = State(initialValue: task?.priority ?? .medium)
         self._hasDueDate = State(initialValue: task?.dueDate != nil)
-        self._dueDate = State(initialValue: task?.dueDate ?? Date())
+        
+        let initialDate: Date
+        if let taskDate = task?.dueDate {
+            initialDate = taskDate
+        } else {
+            // Default to 11:59 PM of the current day (or the task's existing day if it somehow exists)
+            let baseDate = task?.dueDate ?? Date()
+            initialDate = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: baseDate) ?? baseDate
+        }
+        self._dueDate = State(initialValue: initialDate)
+        
         let existingSubtasks = task?.subtasks?.map { DraftSubtask(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) } ?? []
         self._draftSubtasks = State(initialValue: existingSubtasks)
     }
@@ -42,6 +52,7 @@ struct TaskFormView: View {
             Form {
                 Section {
                     TextField("Task title", text: $editedTitle)
+                        .font(.system(size: 18))
                         .fontDesign(.monospaced)
                 } header: {
                     if task != nil {
@@ -68,10 +79,18 @@ struct TaskFormView: View {
                 .fontWidth(.expanded)
                 
                 Section{
-                    Toggle("Has Due Date", isOn: $hasDueDate)
+                    Toggle("Due Date", isOn: $hasDueDate)
+                        .fontDesign(.monospaced)
+                        .font(.system(size: 18))
                     if hasDueDate {
-                        DatePicker("Due Date", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
-   
+                        HStack {
+                            Spacer()
+                            DatePicker("", selection: $dueDate, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
+                                .fontDesign(.monospaced)
+                                .font(.system(size: 18))
+                            Spacer()
+                        }
                     }
                 } header : {
                     Text("Schedule")
@@ -82,11 +101,13 @@ struct TaskFormView: View {
                 Section("Subtasks") {
                     HStack {
                         Image(systemName: "circle.dashed")
+                            .font(.system(size: 23))
                             .foregroundColor(.secondary)
                         TextField("New subtask", text: $newSubtaskTitle)
                             .onSubmit {
                                 addSubtask()
                             }
+                            .font(.system(size: 18))
                             .fontDesign(.monospaced)
                             .fontWeight(.regular)
                         if !newSubtaskTitle.isEmpty {
@@ -103,13 +124,28 @@ struct TaskFormView: View {
                                 subtask.isCompleted.toggle()
                             } label: {
                                 Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 23))
                                     .foregroundColor(subtask.isCompleted ? selectedAccent.color : .secondary)
                             }
                             .buttonStyle(.plain)
                             
                             TextField("Subtask", text: $subtask.title)
+                                .fontDesign(.monospaced)
+                                .font(.system(size: 18))
                                 .strikethrough(subtask.isCompleted)
                                 .foregroundColor(subtask.isCompleted ? .secondary : .primary)
+                            
+                            Button {
+                                if let index = draftSubtasks.firstIndex(where: { $0.id == subtask.id }) {
+                                    _ = withAnimation {
+                                        draftSubtasks.remove(at: index)
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundColor(.red.opacity(0.8))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .onDelete { indexSet in
@@ -118,7 +154,6 @@ struct TaskFormView: View {
                 }
                 .fontWeight(.semibold)
                 .fontWidth(.expanded)
-                
             }
             .navigationTitle(task == nil ? "New Task" : "Edit Task")
             .navigationBarTitleDisplayMode(.inline)
@@ -128,6 +163,7 @@ struct TaskFormView: View {
                         dismiss()
                     }
                     .buttonStyle(.glassProminent)
+                    .tint(.red)
                     .fontWeight(.semibold)
                 }
                 ToolbarItem(placement: .confirmationAction) {

@@ -95,7 +95,7 @@ struct DailySummaryBoxView: View {
             .padding(.trailing, 8)
         }
         .padding(25)
-        .glassEffect(.clear, in: .rect(cornerRadius: 24))
+        .glassEffect(.regular, in: .rect(cornerRadius: 30))
         .padding(.horizontal)
         .onChange(of: progress) { _, _ in
             // Reset and trigger a staggered reveal

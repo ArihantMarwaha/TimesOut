@@ -49,7 +49,7 @@ struct DailyRoutineButton: View {
             }
             .padding(.vertical)
             .background(Color.clear)
-            .contentShape(Rectangle()) // Ensures the whole clear rectangle is tappable
+            .contentShape(Rectangle())
         }
     }
 }

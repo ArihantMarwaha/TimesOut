@@ -54,9 +54,14 @@ struct TaskRow: View {
                 HStack(spacing: 8) {
                     // Due Date Indicator
                     if let dueDate = task.dueDate {
+                        let isEndOfDay = Calendar.current.component(.hour, from: dueDate) == 23 && Calendar.current.component(.minute, from: dueDate) == 59
                         HStack(spacing: 4) {
                             Image(systemName: "calendar.badge.clock")
-                            Text(dueDate, format: .dateTime.month(.abbreviated).day().hour().minute())
+                            if isEndOfDay {
+                                Text(dueDate, format: .dateTime.month(.abbreviated).day())
+                            } else {
+                                Text(dueDate, format: .dateTime.month(.abbreviated).day().hour().minute())
+                            }
                         }
                         .font(.system(size: 10))
                         .fontWidth(.expanded)
@@ -124,6 +129,7 @@ struct TaskRow: View {
         .contentShape(Rectangle())
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isEditMode)
         .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isSelected)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: task.isCompleted)
     }
 
     var body: some View {

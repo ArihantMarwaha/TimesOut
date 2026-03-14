@@ -6,6 +6,8 @@ struct TimesOutApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             TaskItem.self,
+            Routine.self,
+            RoutineTask.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

@@ -1,39 +1,77 @@
 import SwiftUI
 import SwiftData
 
+@MainActor
 @Observable
 final class TaskDashboardViewModel {
     
     // MARK: - UI State
     var selectedDate: Date = Date()
     
-    // MARK: - Filtering Logic
+    // MARK: - Predicates
     
-    /// Filters tasks for the "Daily" section based on the selected date.
-    /// Rules:
-    /// 1. NO due date OR due date is exactly on the selectedDate (ignores time).
-    /// 2. Must not be archived (completed > 24 hours ago).
+    /// Predicate for "Daily" tasks:
+    /// 1. NOT archived (not completed > 24 hours ago).
+    /// 2. (No due date) OR (due date on selectedDate).
+    func dailyTasksPredicate() -> Predicate<TaskItem> {
+        let startOfDay = Calendar.current.startOfDay(for: selectedDate)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        let archiveThreshold = Date().addingTimeInterval(-24 * 3600)
+        
+        return #Predicate<TaskItem> { task in
+            (task.isCompleted == false || (task.completedAt != nil && task.completedAt! > archiveThreshold)) &&
+            (task.dueDate == nil || (task.dueDate != nil && task.dueDate! >= startOfDay && task.dueDate! < endOfDay))
+        }
+    }
+    
+    /// Predicate for "Long Term" tasks:
+    /// 1. NOT archived.
+    /// 2. Has a due date.
+    /// 3. Due date is NOT on the selectedDate.
+    func longTermTasksPredicate() -> Predicate<TaskItem> {
+        let startOfDay = Calendar.current.startOfDay(for: selectedDate)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        let archiveThreshold = Date().addingTimeInterval(-24 * 3600)
+        
+        return #Predicate<TaskItem> { task in
+            (task.isCompleted == false || (task.completedAt != nil && task.completedAt! > archiveThreshold)) &&
+            (task.dueDate != nil && (task.dueDate! < startOfDay || task.dueDate! >= endOfDay))
+        }
+    }
+
+    // MARK: - Filtering Logic (Helper methods for non-Query contexts)
+    
     func dailyTasks(from allTasks: [TaskItem]) -> [TaskItem] {
+        let startOfDay = Calendar.current.startOfDay(for: selectedDate)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        let archiveThreshold = Date().addingTimeInterval(-24 * 3600)
+
         return allTasks.filter { task in
-            guard isTaskActive(task) else { return false }
+            let isActive = !task.isCompleted || (task.completedAt != nil && task.completedAt! > archiveThreshold)
+            guard isActive else { return false }
             
             if let dueDate = task.dueDate {
-                return Calendar.current.isDate(dueDate, inSameDayAs: selectedDate)
+                return dueDate >= startOfDay && dueDate < endOfDay
             } else {
-                return true // No due date always shows in Daily
+                return true 
             }
         }
     }
     
-    /// Filters tasks for the "Long Term" section.
-    /// Rules:
-    /// 1. Must have a due date.
-    /// 2. Must not be archived (completed > 24 hours ago).
-    /// Note: If a task with a due date falls on selectedDate, it will appear in both Daily and Long Term.
     func longTermTasks(from allTasks: [TaskItem]) -> [TaskItem] {
+        let startOfDay = Calendar.current.startOfDay(for: selectedDate)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        let archiveThreshold = Date().addingTimeInterval(-24 * 3600)
+
         return allTasks.filter { task in
-            guard isTaskActive(task) else { return false }
-            return task.dueDate != nil
+            let isActive = !task.isCompleted || (task.completedAt != nil && task.completedAt! > archiveThreshold)
+            guard isActive else { return false }
+            
+            if let dueDate = task.dueDate {
+                return dueDate < startOfDay || dueDate >= endOfDay
+            } else {
+                return false
+            }
         }
     }
     
@@ -50,64 +88,38 @@ final class TaskDashboardViewModel {
     
     /// Checks if a routine is already applied for the selectedDate.
     func isRoutineApplied(_ routine: Routine, allTasks: [TaskItem]) -> Bool {
+        let startOfDay = Calendar.current.startOfDay(for: selectedDate)
+        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        
         return allTasks.contains { task in
-            guard let originID = task.originRoutineID, let dueDate = task.dueDate else { return false }
-            return originID == routine.id && Calendar.current.isDate(dueDate, inSameDayAs: selectedDate)
+            guard let origin = task.originRoutine, let dueDate = task.dueDate else { return false }
+            return origin.id == routine.id && dueDate >= startOfDay && dueDate < endOfDay
         }
     }
     
     /// Toggles routine application: adds tasks if not present, removes them if they are.
-    func toggleRoutine(_ routine: Routine, context: ModelContext, allTasks: [TaskItem]) {
-        let appliedTasks = allTasks.filter { task in
-            guard let originID = task.originRoutineID, let dueDate = task.dueDate else { return false }
-            return originID == routine.id && Calendar.current.isDate(dueDate, inSameDayAs: selectedDate)
-        }
+    func toggleRoutine(_ routine: Routine, container: ModelContainer) {
+        let routineID = routine.id
+        let date = selectedDate
         
-        if !appliedTasks.isEmpty {
-            // Deselect: Remove the tasks
-            for task in appliedTasks {
-                context.delete(task)
-            }
-        } else {
-            // Select: Add the tasks
-            let tasks = routine.tasks ?? []
-            let dueDate = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: selectedDate) ?? selectedDate
-            
-            for routineTask in tasks {
-                let newTask = TaskItem(
-                    title: routineTask.title,
-                    priority: routineTask.priority,
-                    dueDate: dueDate,
-                    originRoutineID: routine.id
-                )
-                
-                if !routineTask.subtaskTitles.isEmpty {
-                    newTask.subtasks = routineTask.subtaskTitles.map { SubtaskItem(title: $0) }
-                }
-                
-                context.insert(newTask)
-            }
+        Task.detached {
+            let actor = TaskModelActor(modelContainer: container)
+            try? await actor.toggleRoutine(routineID: routineID, selectedDate: date)
         }
-        
-        try? context.save()
     }
     
-    // MARK: - Helpers
+    // MARK: - Helpers (Private)
     
-    /// Helper to determine if a task should be visible in active views (not archived).
-    /// - Returns: True if incomplete, OR completed within the last 24 hours.
     private func isTaskActive(_ task: TaskItem) -> Bool {
         if !task.isCompleted {
             return true
         }
         
-        // If completed, check how long ago
         if let completedAt = task.completedAt {
             let hoursSinceCompletion = Date().timeIntervalSince(completedAt) / 3600
             return hoursSinceCompletion <= 24
         }
         
-        // Fallback if completedAt is nil for some reason
         return false
     }
 }

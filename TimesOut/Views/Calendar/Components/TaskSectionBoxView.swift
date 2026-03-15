@@ -160,11 +160,9 @@ struct TaskSectionBoxView: View {
     
     private func handleToggle(task: TaskItem) {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-            task.isCompleted.toggle()
+            task.toggleCompletion()
             if task.isCompleted {
-                task.completedAt = Date()
-            } else {
-                task.completedAt = nil
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
             }
             try? modelContext.save()
         }

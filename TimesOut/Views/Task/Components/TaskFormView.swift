@@ -33,14 +33,8 @@ struct TaskFormView: View {
         self._priority = State(initialValue: task?.priority ?? .medium)
         self._hasDueDate = State(initialValue: task?.dueDate != nil)
         
-        let initialDate: Date
-        if let taskDate = task?.dueDate {
-            initialDate = taskDate
-        } else {
-            // Default to 11:59 PM of the current day (or the task's existing day if it somehow exists)
-            let baseDate = task?.dueDate ?? Date()
-            initialDate = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: baseDate) ?? baseDate
-        }
+        // Use the existing due date if available, otherwise default to end of today for the picker's initial state
+        let initialDate = task?.dueDate ?? Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: Date()) ?? Date()
         self._dueDate = State(initialValue: initialDate)
         
         let existingSubtasks = task?.subtasks?.map { DraftSubtask(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) } ?? []

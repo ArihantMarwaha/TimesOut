@@ -44,14 +44,23 @@ struct RoutineView: View {
                                         ForEach(routines) { routine in
                                             let isApplied = viewModel.isRoutineApplied(routine, allTasks: allTasks)
                                             RoutineCard(routine: routine, isApplied: isApplied) {
-                                                withAnimation {
-                                                    viewModel.toggleRoutine(routine, context: modelContext, allTasks: allTasks)
-                                                }
+                                                viewModel.toggleRoutine(routine, container: modelContext.container)
                                                 // Feedback for the user
                                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                             }
-                                            .onLongPressGesture {
-                                                routineToEdit = routine
+                                            .contextMenu {
+                                                Button {
+                                                    routineToEdit = routine
+                                                } label: {
+                                                    Label("Edit Routine", systemImage: "pencil")
+                                                }
+                                                
+                                                Button(role: .destructive) {
+                                                    modelContext.delete(routine)
+                                                    try? modelContext.save()
+                                                } label: {
+                                                    Label("Delete Routine", systemImage: "trash")
+                                                }
                                             }
                                         }
                                     }
@@ -69,7 +78,7 @@ struct RoutineView: View {
                 RoutineFormView { newTitle, newIcon, newAccent, draftTasks in
                     let routine = Routine(title: newTitle, icon: newIcon, accentColor: newAccent)
                     routine.tasks = draftTasks.map { 
-                        RoutineTask(title: $0.title, priority: $0.priority, subtaskTitles: $0.subtaskTitles) 
+                        RoutineTask(title: $0.title, priority: $0.priority, order: $0.order, subtaskTitles: $0.subtaskTitles) 
                     }
                     modelContext.insert(routine)
                     try? modelContext.save()
@@ -98,10 +107,11 @@ struct RoutineView: View {
                         if let existing = existingTasks.first(where: { $0.id == draft.id }) {
                             existing.title = draft.title
                             existing.priority = draft.priority
+                            existing.order = draft.order
                             existing.subtaskTitles = draft.subtaskTitles
                             updatedTasks.append(existing)
                         } else {
-                            let newTask = RoutineTask(title: draft.title, priority: draft.priority, subtaskTitles: draft.subtaskTitles)
+                            let newTask = RoutineTask(title: draft.title, priority: draft.priority, order: draft.order, subtaskTitles: draft.subtaskTitles)
                             newTask.parentRoutine = routine
                             updatedTasks.append(newTask)
                         }
@@ -121,21 +131,21 @@ struct RoutineView: View {
         guard routines.isEmpty else { return }
         
         // Seed some basic templates
-        let morning = Routine(title: "Morning Routine", icon: "sun.max.fill", accentColor: "orange")
+        let morning = Routine(title: "Morning Routine", icon: "sun.max.fill", accentColor: "Orange")
         let morningTasks = [
-            RoutineTask(title: "Morning Meditation", priority: .medium, parentRoutine: morning),
-            RoutineTask(title: "Hydrate (500ml)", priority: .high, parentRoutine: morning),
-            RoutineTask(title: "Morning Coffee", priority: .low, parentRoutine: morning),
-            RoutineTask(title: "Planned Workout", priority: .medium, parentRoutine: morning, subtaskTitles: ["15 min Yoga", "10 min HIIT", "Cool down stretch"]),
-            RoutineTask(title: "Pack Work Bag", priority: .high, parentRoutine: morning, subtaskTitles: ["Laptop", "Charger", "LunchBox"])
+            RoutineTask(title: "Morning Meditation", priority: .medium, order: 0, parentRoutine: morning),
+            RoutineTask(title: "Hydrate (500ml)", priority: .high, order: 1, parentRoutine: morning),
+            RoutineTask(title: "Morning Coffee", priority: .low, order: 2, parentRoutine: morning),
+            RoutineTask(title: "Planned Workout", priority: .medium, order: 3, parentRoutine: morning, subtaskTitles: ["15 min Yoga", "10 min HIIT", "Cool down stretch"]),
+            RoutineTask(title: "Pack Work Bag", priority: .high, order: 4, parentRoutine: morning, subtaskTitles: ["Laptop", "Charger", "LunchBox"])
         ]
         morning.tasks = morningTasks
         
-        let focus = Routine(title: "Work Focused", icon: "brain.head.profile", accentColor: "purple")
+        let focus = Routine(title: "Work Focused", icon: "brain.head.profile", accentColor: "Purple")
         let focusTasks = [
-            RoutineTask(title: "Review Emails", priority: .low, parentRoutine: focus),
-            RoutineTask(title: "Time Block Schedule", priority: .medium, parentRoutine: focus),
-            RoutineTask(title: "Deep Work Sprint", priority: .high, parentRoutine: focus, subtaskTitles: ["No distractions", "Focus on top goal", "Take 5m break after"])
+            RoutineTask(title: "Review Emails", priority: .low, order: 0, parentRoutine: focus),
+            RoutineTask(title: "Time Block Schedule", priority: .medium, order: 1, parentRoutine: focus),
+            RoutineTask(title: "Deep Work Sprint", priority: .high, order: 2, parentRoutine: focus, subtaskTitles: ["No distractions", "Focus on top goal", "Take 5m break after"])
         ]
         focus.tasks = focusTasks
         

@@ -181,18 +181,10 @@ struct SubtaskRow: View {
     private func toggleSubtask() {
         withAnimation(.easeInOut(duration: 0.2)) {
             subtask.isCompleted.toggle()
-            
-            if let allSubtasks = parentTask.subtasks {
-                let allCompleted = allSubtasks.allSatisfy { $0.isCompleted }
-                if allCompleted && !parentTask.isCompleted {
-                    parentTask.isCompleted = true
-                    parentTask.completedAt = Date()
-                } else if !allCompleted && parentTask.isCompleted {
-                    parentTask.isCompleted = false
-                    parentTask.completedAt = nil
-                }
+            if subtask.isCompleted {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
             }
-            
+            parentTask.updateCompletionState()
             try? modelContext.save()
         }
     }

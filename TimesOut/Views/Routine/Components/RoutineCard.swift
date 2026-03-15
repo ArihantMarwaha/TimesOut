@@ -7,6 +7,10 @@ struct RoutineCard: View {
     
     @AppStorage("app_accent") private var selectedAccent: AppAccentColor = .yellow
     
+    private var currentAccentColor: Color {
+        AppAccentColor(rawValue: routine.accentColor)?.color ?? selectedAccent.color
+    }
+    
     var body: some View {
         Button {
             onApply()
@@ -15,9 +19,9 @@ struct RoutineCard: View {
                 HStack {
                     ZStack {
                         Circle()
-                            .fill(Color(routine.accentColor).opacity(0.2))
+                            .fill(currentAccentColor.opacity(0.2))
                         Image(systemName: routine.icon)
-                            .foregroundColor(Color(routine.accentColor))
+                            .foregroundColor(currentAccentColor)
                             .font(.title2)
                     }
                     .frame(width: 50, height: 50)
@@ -51,15 +55,15 @@ struct RoutineCard: View {
             .background {
                 ZStack {
                     if isApplied {
-                        Color(routine.accentColor).opacity(0.2)
+                        currentAccentColor.opacity(0.2)
                     } else {
                         Color.clear
                     }
                 }
                 .cornerRadius(35)
             }
-            .glassEffect(.clear.interactive(true).tint(isApplied ? Color(routine.accentColor) : .clear), in: .rect(cornerRadius: 35))
-            .shadow(color: isApplied ? Color(routine.accentColor).opacity(0.2) : .black.opacity(0.05), radius: 8, x: 0, y: 4)
+            .glassEffect(.clear.interactive(true).tint(isApplied ? currentAccentColor : .clear), in: .rect(cornerRadius: 35))
+            .shadow(color: isApplied ? currentAccentColor.opacity(0.2) : .black.opacity(0.05), radius: 8, x: 0, y: 4)
         }
         .buttonStyle(.plain)
     }

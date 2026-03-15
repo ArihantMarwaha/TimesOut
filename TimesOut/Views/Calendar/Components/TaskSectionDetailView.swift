@@ -95,55 +95,29 @@ struct TaskSectionDetailView: View {
         }
         .sheet(isPresented: $isAddingTask) {
             TaskFormView { newTitle, newPriority, dueDate, draftSubtasks in
-                // If a user is adding from the "Daily" section, we might want to default the date.
-                // We ensure it defaults to the end of the day (23:59:59) so it's not immediately overdue.
-                let finalDueDate: Date?
-                if let explicitDate = dueDate {
-                    finalDueDate = explicitDate
-                } else if let fallback = defaultDueDate {
-                    finalDueDate = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: fallback) ?? fallback
-                } else {
-                    finalDueDate = nil
-                }
-                
-                let task = TaskItem(title: newTitle, priority: newPriority, dueDate: finalDueDate)
-                if !draftSubtasks.isEmpty {
-                    task.subtasks = draftSubtasks.map { SubtaskItem(id: $0.id, title: $0.title, isCompleted: $0.isCompleted) }
-                }
+                // Respect the nil dueDate if the toggle was off in the form.
+                let task = TaskItem(title: newTitle, priority: newPriority, dueDate: dueDate)
                 modelContext.insert(task)
+                
+                if !draftSubtasks.isEmpty {
+                    task.subtasks = draftSubtasks.map { 
+                        let sub = SubtaskItem(id: $0.id, title: $0.title, isCompleted: $0.isCompleted)
+                        sub.parentTask = task
+                        return sub
+                    }
+                }
                 try? modelContext.save()
             }
         }
         .sheet(item: $taskToEdit) { task in
             TaskFormView(task: task) { newTitle, newPriority, newDueDate, newDrafts in
-                task.title = newTitle
-                task.priority = newPriority
-                task.dueDate = newDueDate
-                
-                // Reconcile subtasks
-                let existingSubtasks = task.subtasks ?? []
-                for draft in newDrafts {
-                    if let existing = existingSubtasks.first(where: { $0.id == draft.id }) {
-                        existing.title = draft.title
-                        existing.isCompleted = draft.isCompleted
-                    } else {
-                        let newSubtask = SubtaskItem(id: draft.id, title: draft.title, isCompleted: draft.isCompleted)
-                        if task.subtasks == nil { task.subtasks = [] }
-                        task.subtasks?.append(newSubtask)
-                    }
-                }
-                
-                // Remove deleted subtasks
-                let draftIDs = Set(newDrafts.map { $0.id })
-                if let subtasks = task.subtasks {
-                    for subtask in subtasks {
-                        if !draftIDs.contains(subtask.id) {
-                            modelContext.delete(subtask)
-                            task.subtasks?.removeAll(where: { $0.id == subtask.id })
-                        }
-                    }
-                }
-                
+                task.update(
+                    title: newTitle,
+                    priority: newPriority,
+                    dueDate: newDueDate,
+                    draftSubtasks: newDrafts,
+                    context: modelContext
+                )
                 try? modelContext.save()
             }
         }
@@ -158,11 +132,9 @@ struct TaskSectionDetailView: View {
                     selectedTaskIDs.insert(task.id)
                 }
             } else {
-                task.isCompleted.toggle()
+                task.toggleCompletion()
                 if task.isCompleted {
-                    task.completedAt = Date()
-                } else {
-                    task.completedAt = nil
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                 }
                 try? modelContext.save()
             }

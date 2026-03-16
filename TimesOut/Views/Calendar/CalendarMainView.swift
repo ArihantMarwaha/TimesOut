@@ -24,7 +24,7 @@ struct CalendarMainView: View {
                         // 3. Daily Tasks Box
                         let daily = viewModel.dailyTasks(from: allTasks)
                         TaskSectionBoxView(
-                            title: "Daily Tasks",
+                            title: "Today's Tasks",
                             subtitle: viewModel.selectedDate.formatted(.dateTime.weekday().day()),
                             tasks: daily,
                             defaultDueDate: viewModel.selectedDate

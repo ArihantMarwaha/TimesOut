@@ -4,7 +4,7 @@ import SwiftData
 @ModelActor
 public actor TaskModelActor {
     
-    /// Toggles routine application: adds tasks if not present, removes them if they are.
+    /// Toggles routine application: adds ONE task with many subtasks if not present, removes it if it is.
     public func toggleRoutine(routineID: UUID, selectedDate: Date) throws {
         // Fetch the routine
         let routinePredicate = #Predicate<Routine> { routine in
@@ -13,11 +13,10 @@ public actor TaskModelActor {
         let routineDescriptor = FetchDescriptor<Routine>(predicate: routinePredicate)
         guard let routine = try modelContext.fetch(routineDescriptor).first else { return }
         
-        let startOfDay = Calendar.current.startOfDay(for: selectedDate)
-        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
+        let calendar = Calendar.current
+        let range = calendar.dayRange(for: selectedDate)
         
-        // Fetch all tasks for this routine to filter manually for the date
-        // (Due to SwiftData's current Predicate limitations with Optional dates and Calendar calls)
+        // Fetch existing task for this routine on the selected day
         let tasksPredicate = #Predicate<TaskItem> { task in
             task.originRoutine?.id == routineID
         }
@@ -25,34 +24,35 @@ public actor TaskModelActor {
         let tasksDescriptor = FetchDescriptor<TaskItem>(predicate: tasksPredicate)
         let allRoutineTasks = try modelContext.fetch(tasksDescriptor)
         
-        // Filter locally in the background actor (still better than main thread)
+        // Filter locally for the specific day
         let appliedTasks = allRoutineTasks.filter { task in
             guard let dueDate = task.dueDate else { return false }
-            return dueDate >= startOfDay && dueDate < endOfDay
+            return dueDate >= range.start && dueDate < range.end
         }
         
         if !appliedTasks.isEmpty {
+            // Delete the parent task (cascades to subtasks)
             for task in appliedTasks {
                 modelContext.delete(task)
             }
         } else {
-            let tasks = (routine.tasks ?? []).sorted(by: { $0.order < $1.order })
+            // Create a single TaskItem for the routine
             let dueDate = Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: selectedDate) ?? selectedDate
             
-            for routineTask in tasks {
-                let newTask = TaskItem(
-                    title: routineTask.title,
-                    priority: routineTask.priority,
-                    dueDate: dueDate,
-                    originRoutine: routine
-                )
-                
-                if !routineTask.subtaskTitles.isEmpty {
-                    newTask.subtasks = routineTask.subtaskTitles.map { SubtaskItem(title: $0) }
-                }
-                
-                modelContext.insert(newTask)
+            let newTask = TaskItem(
+                title: routine.title,
+                priority: routine.priority,
+                dueDate: dueDate,
+                originRoutine: routine
+            )
+            
+            // Map routine tasks to SubtaskItems
+            if let routineTasks = routine.tasks {
+                let sortedTasks = routineTasks.sorted(by: { $0.order < $1.order })
+                newTask.subtasks = sortedTasks.map { SubtaskItem(title: $0.title) }
             }
+            
+            modelContext.insert(newTask)
         }
         
         try modelContext.save()

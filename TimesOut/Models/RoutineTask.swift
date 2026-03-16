@@ -5,23 +5,51 @@ import SwiftData
 final class RoutineTask: Identifiable {
     var id: UUID
     var title: String
-    var priority: TaskPriority
     var order: Int
     var createdAt: Date
     
     // Relationship back to the parent Routine
     var parentRoutine: Routine?
     
-    // Simple titles for subtasks in the template
-    var subtaskTitles: [String]
+    // New Configuration Properties
+    var type: RoutineTaskType = RoutineTaskType.oneOff
+    var deadline: Date?
+    var startTime: Date?
+    var endTime: Date?
+    var targetCount: Int = 1
     
-    init(id: UUID = UUID(), title: String, priority: TaskPriority = .medium, order: Int = 0, createdAt: Date = Date(), parentRoutine: Routine? = nil, subtaskTitles: [String] = []) {
+    // Live State (Resets Daily)
+    var currentCount: Int = 0
+    var isCompleted: Bool = false
+    var lastResetDate: Date = Date()
+    
+    init(
+        id: UUID = UUID(),
+        title: String,
+        order: Int = 0,
+        createdAt: Date = Date(),
+        parentRoutine: Routine? = nil,
+        type: RoutineTaskType = .oneOff,
+        deadline: Date? = nil,
+        startTime: Date? = nil,
+        endTime: Date? = nil,
+        targetCount: Int = 1,
+        currentCount: Int = 0,
+        isCompleted: Bool = false,
+        lastResetDate: Date = Date()
+    ) {
         self.id = id
         self.title = title
-        self.priority = priority
         self.order = order
         self.createdAt = createdAt
         self.parentRoutine = parentRoutine
-        self.subtaskTitles = subtaskTitles
+        self.type = type
+        self.deadline = deadline
+        self.startTime = startTime
+        self.endTime = endTime
+        self.targetCount = targetCount
+        self.currentCount = currentCount
+        self.isCompleted = isCompleted
+        self.lastResetDate = lastResetDate
     }
 }

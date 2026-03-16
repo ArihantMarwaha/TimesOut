@@ -12,12 +12,23 @@ struct MainTaskView: View {
     
     var body: some View {
         NavigationStack {
-            TaskListView(
-                tasks: tasks,
-                isEditMode: $isEditMode,
-                selectedTaskIDs: $selectedTaskIDs,
-                taskToEdit: $taskToEdit
-            )
+            ScrollView {
+                VStack(spacing: 24) {
+                    // 1. The Dynamic Routine Dashboard (Only shows if a routine is active)
+                    ActiveRoutineDashboard()
+                        .padding(.top, 10)
+                    
+                    // 2. The Regular Tasks List
+                    TaskListView(
+                        tasks: tasks,
+                        isEditMode: $isEditMode,
+                        selectedTaskIDs: $selectedTaskIDs,
+                        taskToEdit: $taskToEdit
+                    )
+                }
+                .padding(.bottom, 30)
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
             .toolbarTitleDisplayMode(.inlineLarge)
             .navigationTitle("Tasks")
             .toolbar {

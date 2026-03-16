@@ -14,8 +14,7 @@ struct DailyRoutineButton: View {
                 ZStack {
                     // Inner bordered circle containing the gradient
                     Circle()
-                        .strokeBorder(Color.white.opacity(1), lineWidth: 1)
-                        // The clear circle makes room for the background behind it
+                        .strokeBorder(Color.white.opacity(1), lineWidth: 3)
                         .background(
                             Circle()
                                 .fill(Color.clear)

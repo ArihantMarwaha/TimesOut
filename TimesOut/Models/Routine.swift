@@ -7,21 +7,21 @@ final class Routine: Identifiable {
     var title: String
     var icon: String
     var accentColor: String
+    var priority: TaskPriority
     var createdAt: Date
+    var isActive: Bool = false
     
     @Relationship(deleteRule: .cascade, inverse: \RoutineTask.parentRoutine)
     var tasks: [RoutineTask]?
     
-    @Relationship(deleteRule: .nullify, inverse: \TaskItem.originRoutine)
-    var instantiatedTasks: [TaskItem]?
-    
-    init(id: UUID = UUID(), title: String, icon: String = "list.bullet", accentColor: String = "yellow", createdAt: Date = Date(), tasks: [RoutineTask]? = nil, instantiatedTasks: [TaskItem]? = nil) {
+    init(id: UUID = UUID(), title: String, icon: String = "list.bullet", accentColor: String = "yellow", priority: TaskPriority = .medium, createdAt: Date = Date(), tasks: [RoutineTask]? = nil, isActive: Bool = false) {
         self.id = id
         self.title = title
         self.icon = icon
         self.accentColor = accentColor
+        self.priority = priority
         self.createdAt = createdAt
         self.tasks = tasks
-        self.instantiatedTasks = instantiatedTasks
+        self.isActive = isActive
     }
 }

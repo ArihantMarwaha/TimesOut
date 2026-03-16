@@ -63,7 +63,7 @@ struct RoutineCard: View {
                 .cornerRadius(35)
             }
             .glassEffect(.clear.interactive(true).tint(isApplied ? currentAccentColor : .clear), in: .rect(cornerRadius: 35))
-            .shadow(color: isApplied ? currentAccentColor.opacity(0.2) : .black.opacity(0.05), radius: 8, x: 0, y: 4)
+            .shadow(color: isApplied ? currentAccentColor.opacity(0.2) : .black.opacity(0.3), radius: 6, x: 4, y: 6)
         }
         .buttonStyle(.plain)
     }
@@ -71,7 +71,7 @@ struct RoutineCard: View {
 
 #Preview {
     ZStack {
-        RoutineCard(routine: Routine(title: "Morning Routine", icon: "sun.max.fill", accentColor: "orange"), isApplied: false) {
+        RoutineCard(routine: Routine(title: "Morning Routine", icon: "sun.max.fill", accentColor: "yellow"), isApplied: false) {
             print("Apply routine")
         }
     }

@@ -1,17 +1,5 @@
 import SwiftUI
 
-struct DraftSubtask: Identifiable, Equatable {
-    let id: UUID
-    var title: String
-    var isCompleted: Bool
-    
-    init(id: UUID = UUID(), title: String, isCompleted: Bool = false) {
-        self.id = id
-        self.title = title
-        self.isCompleted = isCompleted
-    }
-}
-
 struct TaskFormView: View {
     let task: TaskItem?
     let onSave: (String, TaskPriority, Date?, [DraftSubtask]) -> Void
@@ -21,7 +9,6 @@ struct TaskFormView: View {
     @State private var hasDueDate: Bool
     @State private var dueDate: Date
     @State private var draftSubtasks: [DraftSubtask]
-    @State private var newSubtaskTitle: String = ""
     
     @Environment(\.dismiss) private var dismiss
     @AppStorage("app_accent") private var selectedAccent: AppAccentColor = .yellow
@@ -33,7 +20,6 @@ struct TaskFormView: View {
         self._priority = State(initialValue: task?.priority ?? .medium)
         self._hasDueDate = State(initialValue: task?.dueDate != nil)
         
-        // Use the existing due date if available, otherwise default to end of today for the picker's initial state
         let initialDate = task?.dueDate ?? Calendar.current.date(bySettingHour: 23, minute: 59, second: 59, of: Date()) ?? Date()
         self._dueDate = State(initialValue: initialDate)
         
@@ -49,30 +35,21 @@ struct TaskFormView: View {
                         .font(.system(size: 18))
                         .fontDesign(.monospaced)
                 } header: {
-                    if task != nil {
-                        Text("Task Name")
-                    } else {
-                         Text("Task Details")
-                            .fontWeight(.semibold)
-                            .fontWidth(.expanded)
-                    }
+                    Text(task != nil ? "Task Name" : "Task Details")
+                        .fontWeight(.semibold)
+                        .fontWidth(.expanded)
                 }
                 
                 Section("Priority") {
-                    Picker("Priority", selection: $priority) {
-                        ForEach(TaskPriority.allCases) { p in
-                            Image(systemName: p.icon).tag(p)
-                                .bold()
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
+                    PriorityPicker(selection: $priority)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                        .padding(.vertical, 8)
                 }
                 .fontWeight(.semibold)
                 .fontWidth(.expanded)
                 
-                Section{
+                Section {
                     Toggle("Due Date", isOn: $hasDueDate)
                         .fontDesign(.monospaced)
                         .font(.system(size: 18))
@@ -93,58 +70,8 @@ struct TaskFormView: View {
                 }
                 
                 Section("Subtasks") {
-                    HStack {
-                        Image(systemName: "circle.dashed")
-                            .font(.system(size: 23))
-                            .foregroundColor(.secondary)
-                        TextField("New subtask", text: $newSubtaskTitle)
-                            .onSubmit {
-                                addSubtask()
-                            }
-                            .font(.system(size: 18))
-                            .fontDesign(.monospaced)
-                            .fontWeight(.regular)
-                        if !newSubtaskTitle.isEmpty {
-                            Button(action: addSubtask) {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(selectedAccent.color)
-                            }
-                        }
-                    }
-                    
-                    ForEach($draftSubtasks) { $subtask in
-                        HStack {
-                            Button {
-                                subtask.isCompleted.toggle()
-                            } label: {
-                                Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
-                                    .font(.system(size: 23))
-                                    .foregroundColor(subtask.isCompleted ? selectedAccent.color : .secondary)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            TextField("Subtask", text: $subtask.title)
-                                .fontDesign(.monospaced)
-                                .font(.system(size: 18))
-                                .strikethrough(subtask.isCompleted)
-                                .foregroundColor(subtask.isCompleted ? .secondary : .primary)
-                            
-                            Button {
-                                if let index = draftSubtasks.firstIndex(where: { $0.id == subtask.id }) {
-                                    _ = withAnimation {
-                                        draftSubtasks.remove(at: index)
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundColor(.red.opacity(0.8))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .onDelete { indexSet in
-                        draftSubtasks.remove(atOffsets: indexSet)
-                    }
+                    SubtaskListView<DraftSubtask>.forTasks(subtasks: $draftSubtasks, accentColor: selectedAccent.color)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 }
                 .fontWeight(.semibold)
                 .fontWidth(.expanded)
@@ -153,41 +80,23 @@ struct TaskFormView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(.red)
-                    .fontWeight(.semibold)
+                    Button("Cancel") { dismiss() }
+                        .buttonStyle(.glassProminent)
+                        .tint(.red)
+                        .fontWeight(.semibold)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    if task == nil {
-                        Button("Add") {
-                            saveTask()
-                        }
-                        .fontWeight(.semibold)
-                        .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    } else {
-                        Button("Save", systemImage: "checkmark") {
-                            saveTask()
-                        }
-                        .fontWeight(.bold)
-                        .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(task == nil ? "Add" : "Save") {
+                        saveTask()
                     }
+                    .fontWeight(.bold)
+                    .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .withAppTheme()
         }
-        .presentationDetents([.fraction(0.70)])
-        .presentationDragIndicator(.hidden)
-    }
-    
-    private func addSubtask() {
-        let trimmed = newSubtaskTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            draftSubtasks.append(DraftSubtask(title: trimmed))
-            newSubtaskTitle = ""
-        }
+        .presentationDetents([.fraction(0.85)])
+        .presentationDragIndicator(.visible)
     }
     
     private func saveTask() {

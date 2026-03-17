@@ -1,8 +1,12 @@
 import SwiftUI
+internal import Combine
 
 struct RoutineTaskIntervalRow: View {
-    @Bindable var task: RoutineTask
+    @Bindable var routine: Routine
     let accentColor: Color
+    
+    @State private var currentTime = Date()
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     private let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -11,60 +15,72 @@ struct RoutineTaskIntervalRow: View {
     }()
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Time Window Indicator
+        RoutineCard(title: routine.title, accentColor: accentColor) {
+            // Visual Slot: Time Ring
             ZStack {
                 Circle()
-                    .fill(isWithinWindow ? accentColor.opacity(0.1) : Color.gray.opacity(0.1))
-                Image(systemName: "clock.badge.checkmark")
-                    .foregroundColor(isWithinWindow ? accentColor : .gray)
-                    .font(.title3)
-            }
-            .frame(width: 44, height: 44)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .stroke(Color.gray.opacity(0.1), lineWidth: 4)
                 
-                HStack(spacing: 4) {
-                    Text(timeFormatter.string(from: task.startTime ?? Date()))
-                    Text("-")
-                    Text(timeFormatter.string(from: task.endTime ?? Date()))
-                }
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundColor(.secondary)
+                Circle()
+                    .trim(from: 0, to: CGFloat(max(0, min(1.0, progress))))
+                    .stroke(
+                        isWithinWindow ? accentColor.gradient : Color.gray.gradient,
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                
+                Image(systemName: routine.icon)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(isWithinWindow ? accentColor : .secondary)
             }
+            .frame(width: 60, height: 60)
+            .padding(10)
             
-            Spacer()
-            
-            // Completion Toggle
+            Text(timeStatusText)
+                .font(.system(size: 10, weight: .black, design: .rounded))
+                .foregroundColor(isWithinWindow ? accentColor : .secondary)
+                .textCase(.uppercase)
+        } footer: {
+            // Footer Slot: Log Button
             Button {
-                task.isCompleted.toggle()
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                withAnimation {
+                    routine.isCompleted.toggle()
+                    routine.lastUpdatedDate = Date()
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
             } label: {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundColor(task.isCompleted ? accentColor : .secondary)
+                Text(routine.isCompleted ? "Done" : "Log")
+                    .font(.system(size: 12, weight: .bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(routine.isCompleted ? accentColor : Color.primary.opacity(0.05))
+                    .foregroundColor(routine.isCompleted ? .white : .primary)
+                    .clipShape(Capsule())
             }
             .buttonStyle(.plain)
         }
-        .padding(.vertical, 8)
+        .onReceive(timer) { _ in
+            currentTime = Date()
+        }
+    }
+    
+    private var progress: Double {
+        guard let start = routine.startTime, let end = routine.endTime else { return 0 }
+        let total = end.timeIntervalSince(start)
+        let elapsed = currentTime.timeIntervalSince(start)
+        return elapsed / total
     }
     
     private var isWithinWindow: Bool {
-        let now = Date()
-        guard let start = task.startTime, let end = task.endTime else { return false }
-        
-        let calendar = Calendar.current
-        let componentsNow = calendar.dateComponents([.hour, .minute], from: now)
-        let componentsStart = calendar.dateComponents([.hour, .minute], from: start)
-        let componentsEnd = calendar.dateComponents([.hour, .minute], from: end)
-        
-        guard let dateNow = calendar.date(from: componentsNow),
-              let dateStart = calendar.date(from: componentsStart),
-              let dateEnd = calendar.date(from: componentsEnd) else { return false }
-              
-        return dateNow >= dateStart && dateNow <= dateEnd
+        guard let start = routine.startTime, let end = routine.endTime else { return false }
+        return currentTime >= start && currentTime <= end
+    }
+    
+    private var timeStatusText: String {
+        guard let start = routine.startTime, let end = routine.endTime else { return "" }
+        if currentTime < start { return "Coming Up" }
+        if currentTime > end { return "Closed" }
+        return "Active"
     }
 }
 
@@ -77,12 +93,12 @@ struct RoutineTaskIntervalRow: View {
     
     return List {
         RoutineTaskIntervalRow(
-            task: RoutineTask(title: "Deep Work", type: .interval, startTime: start, endTime: end),
+            routine: Routine(title: "Deep Work", type: .interval, startTime: start, endTime: end),
             accentColor: .purple
         )
         
         RoutineTaskIntervalRow(
-            task: RoutineTask(title: "Coding Session", type: .interval, startTime: start, endTime: end, isCompleted: true),
+            routine: Routine(title: "Coding Session", type: .interval, startTime: start, endTime: end, isCompleted: true),
             accentColor: .blue
         )
     }

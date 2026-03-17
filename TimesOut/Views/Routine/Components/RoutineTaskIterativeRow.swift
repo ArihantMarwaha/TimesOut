@@ -1,81 +1,88 @@
 import SwiftUI
 
 struct RoutineTaskIterativeRow: View {
-    @Bindable var task: RoutineTask
+    @Bindable var routine: Routine
     let accentColor: Color
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Progress Ring
-            ZStack {
-                Circle()
-                    .stroke(accentColor.opacity(0.1), lineWidth: 4)
-                Circle()
-                    .trim(from: 0, to: CGFloat(task.currentCount) / CGFloat(task.targetCount))
-                    .stroke(accentColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                
-                Text("\(task.currentCount)")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(accentColor)
-            }
-            .frame(width: 44, height: 44)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                
-                Text("Target: \(task.targetCount)")
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Stepper Controls
-            HStack(spacing: 15) {
-                Button {
-                    if task.currentCount > 0 {
-                        task.currentCount -= 1
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        RoutineCard(title: routine.title, accentColor: accentColor) {
+            // Visual Slot: Interactive Ring
+            Button {
+                logProgress()
+            } label: {
+                ZStack {
+                    Circle()
+                        .stroke(accentColor.opacity(0.1), lineWidth: 6)
+                    
+                    Circle()
+                        .trim(from: 0, to: CGFloat(routine.currentCount) / CGFloat(routine.targetCount))
+                        .stroke(
+                            accentColor.gradient,
+                            style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: routine.currentCount)
+                    
+                    VStack(spacing: 0) {
+                        Image(systemName: routine.icon)
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(accentColor)
+                        
+                        Text("\(routine.currentCount)")
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .contentTransition(.numericText())
                     }
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(accentColor.opacity(0.3))
                 }
-                .buttonStyle(.plain)
-                
-                Button {
-                    if task.currentCount < task.targetCount {
-                        task.currentCount += 1
-                        if task.currentCount == task.targetCount {
-                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                        } else {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        }
-                    }
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.title2)
-                        .foregroundColor(accentColor)
-                }
-                .buttonStyle(.plain)
+                .padding(10)
+                .glassEffect(.regular, in: .circle)
+                .shadow(color: accentColor.opacity(0.15), radius: 10, x: 0, y: 5)
+            }
+            .buttonStyle(SquishButtonStyle())
+        } footer: {
+            // Footer Slot: Status
+            Text("\(routine.currentCount) / \(routine.targetCount)")
+                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundColor(.secondary)
+                .padding(.bottom, 8)
+        }
+    }
+    
+    private func logProgress() {
+        guard routine.currentCount < routine.targetCount else {
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            return
+        }
+        
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+            routine.currentCount += 1
+            routine.lastUpdatedDate = Date()
+            if routine.currentCount == routine.targetCount {
+                routine.isCompleted = true
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+            } else {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             }
         }
-        .padding(.vertical, 8)
+    }
+}
+
+struct SquishButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.interactiveSpring(response: 0.2, dampingFraction: 0.5), value: configuration.isPressed)
     }
 }
 
 #Preview {
     List {
         RoutineTaskIterativeRow(
-            task: RoutineTask(title: "Drink Water", type: .iterative, targetCount: 8),
+            routine: Routine(title: "Drink Water", type: .iterative, targetCount: 8),
             accentColor: .blue
         )
         
         RoutineTaskIterativeRow(
-            task: RoutineTask(title: "Read Pages", type: .iterative, targetCount: 20, currentCount: 15),
+            routine: Routine(title: "Read Pages", type: .iterative, targetCount: 20, currentCount: 15),
             accentColor: .orange
         )
     }

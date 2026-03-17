@@ -1,79 +1,72 @@
 import SwiftUI
 
-struct RoutineCard: View {
-    let routine: Routine
-    let isApplied: Bool
-    var onApply: () -> Void
-    
-    @AppStorage("app_accent") private var selectedAccent: AppAccentColor = .yellow
-    
-    private var currentAccentColor: Color {
-        AppAccentColor(rawValue: routine.accentColor)?.color ?? selectedAccent.color
-    }
+struct RoutineCard<Visual: View, Footer: View>: View {
+    let title: String
+    let accentColor: Color
+    @ViewBuilder let visual: Visual
+    @ViewBuilder let footer: Footer
     
     var body: some View {
-        Button {
-            onApply()
-        } label: {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    ZStack {
-                        Circle()
-                            .fill(currentAccentColor.opacity(0.2))
-                        Image(systemName: routine.icon)
-                            .foregroundColor(currentAccentColor)
-                            .font(.title2)
-                    }
-                    .frame(width: 50, height: 50)
-                    
-                    Spacer()
-                    
-                    Image(systemName: isApplied ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .font(.title2)
-                        .offset(x:5,y:-15)
-                        .foregroundColor(isApplied ? .white : .primary)
-                }
-                
-                Spacer()
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(routine.title)
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .fontWidth(.expanded)
-                    
-                    Text("\(routine.tasks?.count ?? 0) Tasks")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundColor(isApplied ? .white.opacity(0.8) : .secondary)
-                }
-                .foregroundColor(isApplied ? .white : .primary)
-            }
-            .padding(20)
-            .frame(width: 170, height: 200)
-            .contentShape(Rectangle())
-            .background {
-                ZStack {
-                    if isApplied {
-                        currentAccentColor.opacity(0.2)
-                    } else {
-                        Color.clear
-                    }
-                }
-                .cornerRadius(35)
-            }
-            .glassEffect(.clear.interactive(true).tint(isApplied ? currentAccentColor : .clear), in: .rect(cornerRadius: 35))
-            .shadow(color: isApplied ? currentAccentColor.opacity(0.2) : .black.opacity(0.3), radius: 6, x: 4, y: 6)
+        VStack(spacing: 8) {
+            // Top Visual Area
+            visual
+                .frame(maxWidth: .infinity)
+                .padding()
+            
+            
+            // Middle Title Area
+            Text(title)
+                .font(.system(size: 16, weight: .bold))
+                .fontWidth(.expanded)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 4)
+            
+            // Bottom Footer/Action Area
+            footer
         }
-        .buttonStyle(.plain)
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .frame(height: 200)
+        .glassEffect(.regular.interactive(),in:.rect(cornerRadius:25))
+        .background {
+            RoundedRectangle(cornerRadius: 25)
+                .fill(Color.clear)
+                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+        }
     }
 }
-
 #Preview {
     ZStack {
-        RoutineCard(routine: Routine(title: "Morning Routine", icon: "sun.max.fill", accentColor: "yellow"), isApplied: false) {
-            print("Apply routine")
+       Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+        
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+            RoutineCard(title: "Morning Coffee", accentColor: .brown) {
+                Image(systemName: "cup.and.saucer.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(.brown)
+            } footer: {
+                Text("Log Progress")
+                    .font(.caption)
+                    .padding(.bottom, 8)
+            }
+            
+            RoutineCard(title: "Read 10 Pages", accentColor: .blue) {
+                Circle()
+                    .stroke(Color.blue.opacity(0.1), lineWidth: 4)
+                    .overlay(
+                        Image(systemName: "book.fill")
+                            .font(.title)
+                            .foregroundColor(.blue)
+                    )
+                    .frame(width: 60, height: 60)
+            } footer: {
+                Capsule()
+                    .fill(Color.blue)
+                    .frame(height: 4)
+                    .padding(.bottom, 8)
+            }
         }
+        .padding()
     }
-    .withAppTheme()
 }

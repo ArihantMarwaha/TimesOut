@@ -48,6 +48,9 @@ struct CalendarMainView: View {
             .ignoresSafeArea(edges: .top)
             .background(Color(uiColor: .systemGroupedBackground))
             .toolbar(.hidden, for: .navigationBar)
+            .onAppear {
+                viewModel.archiveExpiredTasks(in: modelContext)
+            }
         }
     }
 }

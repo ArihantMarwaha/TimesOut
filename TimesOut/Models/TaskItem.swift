@@ -11,15 +11,18 @@ final class TaskItem: Identifiable {
     var createdAt: Date
     var completedAt: Date?
     
+    var isArchived: Bool
+    
     var originRoutine: Routine?
     
     @Relationship(deleteRule: .cascade, inverse: \SubtaskItem.parentTask)
     var subtasks: [SubtaskItem]?
     
-    init(id: UUID = UUID(), title: String, isCompleted: Bool = false, priority: TaskPriority = .medium, dueDate: Date? = nil, originRoutine: Routine? = nil, createdAt: Date = Date(), completedAt: Date? = nil, subtasks: [SubtaskItem]? = nil) {
+    init(id: UUID = UUID(), title: String, isCompleted: Bool = false, isArchived: Bool = false, priority: TaskPriority = .medium, dueDate: Date? = nil, originRoutine: Routine? = nil, createdAt: Date = Date(), completedAt: Date? = nil, subtasks: [SubtaskItem]? = nil) {
         self.id = id
         self.title = title
         self.isCompleted = isCompleted
+        self.isArchived = isArchived
         self.priority = priority
         self.dueDate = dueDate
         self.originRoutine = originRoutine
@@ -74,6 +77,11 @@ final class TaskItem: Identifiable {
     func toggleCompletion() {
         isCompleted.toggle()
         completedAt = isCompleted ? Date() : nil
+        
+        // If un-completing, ensure it's not archived
+        if !isCompleted {
+            isArchived = false
+        }
         
         // If completing a task, also complete all its subtasks
         if isCompleted {

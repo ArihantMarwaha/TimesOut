@@ -16,10 +16,10 @@ struct RoutineIconPicker: View {
                     // Background Selection Box
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(accentColor.opacity(0.1))
-                        .glassEffect(.clear, in: .rect(cornerRadius: 20))
+                        .glassEffect(.clear.tint(accentColor.opacity(0.1)), in: .rect(cornerRadius: 20))
                         .frame(width: itemSize + 12, height: itemSize + 12)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
                                 .strokeBorder(accentColor.opacity(0.4), lineWidth: 2)
                         )
                     
@@ -33,7 +33,7 @@ struct RoutineIconPicker: View {
                                     .id(iconName)
                                     .scrollTransition(.interactive, axis: .horizontal) { content, phase in
                                         content
-                                            .scaleEffect(phase.isIdentity ? 1.2 : 0.65)
+                                            .scaleEffect(phase.isIdentity ? 1.2 : 0.85)
                                             .opacity(phase.isIdentity ? 1.0 : 0.4)
                                             .blur(radius: phase.isIdentity ? 0 : 1)
                                     }

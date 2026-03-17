@@ -20,7 +20,7 @@ struct MainTabView: View {
                 }
                 .tag(Tab.tasks)
             
-            RoutineView(viewModel: viewModel)
+            RoutineView()
                 .tabItem {
                     Image(systemName: "sparkles")
                 }

@@ -33,12 +33,33 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                
+                // MARK: – Developer
+                Section {
+                    Button(role: .destructive) {
+                        DataGenerationService.clearAllData(in: modelContext)
+                    } label: {
+                        Label("Clear All Data", systemImage: "trash")
+                    }
+                    
+                    Button {
+                        DataGenerationService.seedAllData(in: modelContext)
+                    } label: {
+                        Label("Seed Dummy Data", systemImage: "plus.square.on.square")
+                    }
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("Use these tools to reset or populate the app with test data.")
+                }
             }
             .navigationTitle("Settings")
             .toolbarTitleDisplayMode(.inlineLarge)
         }
         .withAppTheme()
     }
+    
+    @Environment(\.modelContext) private var modelContext
 }
 
 struct ThemeSegmentedPicker: View {

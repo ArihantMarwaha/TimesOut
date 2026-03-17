@@ -7,7 +7,7 @@ struct TimesOutApp: App {
         let schema = Schema([
             TaskItem.self,
             Routine.self,
-            RoutineTask.self,
+            SubtaskItem.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

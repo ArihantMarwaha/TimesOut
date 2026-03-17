@@ -3,16 +3,7 @@ import SwiftData
 
 struct ArchiveView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \TaskItem.completedAt, order: .reverse) private var allTasks: [TaskItem]
-    
-    // Filter tasks that were completed more than 24 hours ago
-    var archivedTasks: [TaskItem] {
-        allTasks.filter { task in
-            guard task.isCompleted, let completedAt = task.completedAt else { return false }
-            // Check if 24 hours have passed since completion
-            return Date().timeIntervalSince(completedAt) > 86400
-        }
-    }
+    @Query(filter: #Predicate<TaskItem> { $0.isArchived }, sort: \TaskItem.completedAt, order: .reverse) private var archivedTasks: [TaskItem]
     
     var body: some View {
         NavigationStack {
@@ -36,6 +27,7 @@ struct ArchiveView: View {
                                 withAnimation {
                                     task.isCompleted = false
                                     task.completedAt = nil
+                                    task.isArchived = false
                                     try? modelContext.save()
                                 }
                             }

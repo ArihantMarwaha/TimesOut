@@ -37,13 +37,6 @@ struct DailyRoutineButton: View {
                         .font(.system(size: 34, weight: .light))
                         .foregroundStyle(Color.primary.opacity(0.6))
                 }
-                
-                Text("Make Routine")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .fontWidth(.expanded)
-                    .foregroundStyle(Color.primary)
-                
                 Spacer()
             }
             .padding(.vertical)

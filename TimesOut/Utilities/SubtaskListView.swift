@@ -171,22 +171,22 @@ extension SubtaskListView where T == DraftSubtask {
     }
 }
 
-extension SubtaskListView where T == DraftRoutineTask {
-    static func forRoutineTasks(tasks: Binding<[DraftRoutineTask]>, accentColor: Color, onSettings: @escaping (Binding<DraftRoutineTask>) -> Void) -> some View {
-        SubtaskListView<DraftRoutineTask>(
-            items: tasks,
-            accentColor: accentColor,
-            placeholder: "New routine step",
-            canToggle: false,
-            onCreate: { DraftRoutineTask(title: $0) },
-            onToggle: nil,
-            getTitle: { $0.title },
-            setTitle: { $0.title = $1 },
-            isCompleted: nil,
-            onSettings: onSettings
-        )
-    }
-}
+//extension SubtaskListView where T == DraftRoutineTask {
+//    static func forRoutineTasks(tasks: Binding<[DraftRoutineTask]>, accentColor: Color, onSettings: @escaping (Binding<DraftRoutineTask>) -> Void) -> some View {
+//        SubtaskListView<DraftRoutineTask>(
+//            items: tasks,
+//            accentColor: accentColor,
+//            placeholder: "New routine step",
+//            canToggle: false,
+//            onCreate: { DraftRoutineTask(title: $0) },
+//            onToggle: nil,
+//            getTitle: { $0.title },
+//            setTitle: { $0.title = $1 },
+//            isCompleted: nil,
+//            onSettings: onSettings
+//        )
+//    }
+//}
 
 #Preview {
     Form {

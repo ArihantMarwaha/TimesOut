@@ -2,7 +2,6 @@ import SwiftUI
 import SwiftData
 
 struct RoutineView: View {
-    var viewModel: TaskDashboardViewModel
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Routine.createdAt, order: .reverse) private var routines: [Routine]
     @AppStorage("app_accent") private var selectedAccent: AppAccentColor = .yellow
@@ -17,19 +16,24 @@ struct RoutineView: View {
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 30) {
-                        // Section: Make New Routine
-                        DailyRoutineButton {
-                            isShowingForm = true
+                    VStack(alignment: .leading, spacing: 40) {
+                        // Top Section: Make New Routine
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Start Fresh")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .fontWidth(.expanded)
+                                .padding(.horizontal)
+                                
+                            DailyRoutineButton {
+                                isShowingForm = true
+                            }
                         }
                         .padding(.top, 20)
                         
-                        // Section: Active Lifestyle Progress
-                        ActiveRoutineDashboard()
-                        
-                        // Section: My Templates
+                        // Main Section: Active Interactive Routines Grid
                         VStack(alignment: .leading, spacing: 20) {
-                            Text("Routine Templates")
+                            Text("Your Routines")
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .fontWidth(.expanded)
@@ -41,33 +45,31 @@ struct RoutineView: View {
                                     .foregroundColor(.secondary)
                                     .padding(.horizontal)
                             } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 20) {
-                                        ForEach(routines) { routine in
-                                            RoutineCard(routine: routine, isApplied: routine.isActive) {
-                                                withAnimation {
-                                                    RoutineManager.shared.activateRoutine(routine, modelContext: modelContext)
-                                                }
-                                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                            }
+                                LazyVGrid(columns: [
+                                    GridItem(.flexible(), spacing: 16),
+                                    GridItem(.flexible(), spacing: 16)
+                                ], spacing: 16) {
+                                    ForEach(routines) { routine in
+                                        routineRow(for: routine)
                                             .contextMenu {
                                                 Button {
                                                     routineToEdit = routine
                                                 } label: {
-                                                    Label("Edit Routine", systemImage: "pencil")
+                                                    Label("Edit", systemImage: "pencil")
                                                 }
                                                 
                                                 Button(role: .destructive) {
-                                                    modelContext.delete(routine)
-                                                    try? modelContext.save()
+                                                    withAnimation {
+                                                        modelContext.delete(routine)
+                                                        try? modelContext.save()
+                                                    }
                                                 } label: {
-                                                    Label("Delete Routine", systemImage: "trash")
+                                                    Label("Delete", systemImage: "trash")
                                                 }
                                             }
-                                        }
                                     }
-                                    .padding(.horizontal)
                                 }
+                                .padding(.horizontal)
                             }
                         }
                         
@@ -75,108 +77,83 @@ struct RoutineView: View {
                     }
                 }
             }
-            .navigationTitle("Routine")
+            .navigationTitle("Routines")
             .toolbarTitleDisplayMode(.inlineLarge)
+            .onAppear {
+                checkAndResetDailyRoutines()
+            }
             .sheet(isPresented: $isShowingForm) {
-                RoutineFormView { newTitle, newIcon, newAccent, newPriority, active, draftTasks in
-                    let routine = Routine(title: newTitle, icon: newIcon, accentColor: newAccent, priority: newPriority, isActive: active)
-                    routine.tasks = draftTasks.map { 
-                        RoutineTask(
-                            title: $0.title, 
-                            order: $0.order, 
-                            parentRoutine: routine,
-                            type: $0.type,
-                            deadline: $0.deadline,
-                            startTime: $0.startTime,
-                            endTime: $0.endTime,
-                            targetCount: $0.targetCount
-                        ) 
-                    }
-                    modelContext.insert(routine)
-                    
-                    if active {
-                        RoutineManager.shared.activateRoutine(routine, modelContext: modelContext)
-                    } else {
-                        try? modelContext.save()
-                    }
+                RoutineFormView { title, icon, accent, type, targetCount, startTime, endTime, deadline in
+                    let newRoutine = Routine(
+                        title: title,
+                        icon: icon,
+                        accentColor: accent,
+                        type: type,
+                        deadline: deadline,
+                        startTime: startTime,
+                        endTime: endTime,
+                        targetCount: targetCount
+                    )
+                    modelContext.insert(newRoutine)
+                    try? modelContext.save()
                 }
             }
             .sheet(item: $routineToEdit) { routine in
-                RoutineFormView(routine: routine) { newTitle, newIcon, newAccent, newPriority, active, draftTasks in
-                    routine.title = newTitle
-                    routine.icon = newIcon
-                    routine.accentColor = newAccent
-                    routine.priority = newPriority
-                    routine.isActive = active
+                RoutineFormView(routine: routine) { title, icon, accent, type, targetCount, startTime, endTime, deadline in
+                    routine.title = title
+                    routine.icon = icon
+                    routine.accentColor = accent
+                    routine.type = type
+                    routine.targetCount = targetCount
+                    routine.startTime = startTime
+                    routine.endTime = endTime
+                    routine.deadline = deadline
                     
-                    let existingTasks = routine.tasks ?? []
-                    let draftIDs = Set(draftTasks.map { $0.id })
-                    
-                    for existing in existingTasks {
-                        if !draftIDs.contains(existing.id) {
-                            modelContext.delete(existing)
-                        }
-                    }
-                    
-                    var updatedTasks: [RoutineTask] = []
-                    for draft in draftTasks {
-                        if let existing = existingTasks.first(where: { $0.id == draft.id }) {
-                            existing.title = draft.title
-                            existing.order = draft.order
-                            existing.type = draft.type
-                            existing.deadline = draft.deadline
-                            existing.startTime = draft.startTime
-                            existing.endTime = draft.endTime
-                            existing.targetCount = draft.targetCount
-                            updatedTasks.append(existing)
-                        } else {
-                            let newTask = RoutineTask(
-                                title: draft.title, 
-                                order: draft.order, 
-                                parentRoutine: routine,
-                                type: draft.type,
-                                deadline: draft.deadline,
-                                startTime: draft.startTime,
-                                endTime: draft.endTime,
-                                targetCount: draft.targetCount
-                            )
-                            updatedTasks.append(newTask)
-                        }
-                    }
-                    routine.tasks = updatedTasks
-                    
-                    if active {
-                        RoutineManager.shared.activateRoutine(routine, modelContext: modelContext)
-                    } else {
-                        try? modelContext.save()
-                    }
+                    try? modelContext.save()
                 }
             }
         }
-        .onAppear {
-            seedRoutines()
+    }
+    
+    // Dynamically render the correct row type based on the Routine's enum type
+    @ViewBuilder
+    private func routineRow(for routine: Routine) -> some View {
+        let color = AppAccentColor(rawValue: routine.accentColor)?.color ?? .gray
+        
+        switch routine.type {
+        case .interval:
+            RoutineTaskIntervalRow(routine: routine, accentColor: color)
+        case .iterative:
+            RoutineTaskIterativeRow(routine: routine, accentColor: color)
+        case .oneOff:
+            RoutineTaskOneOffRow(routine: routine, accentColor: color)
         }
     }
     
-    private func seedRoutines() {
-        guard routines.isEmpty else { return }
+    /// The critical Daily Reset logic.
+    /// Checks if a routine's `lastUpdatedDate` is from a previous day. If so, resets its progress.
+    private func checkAndResetDailyRoutines() {
+        let calendar = Calendar.current
+        var needsSave = false
         
-        // Seed some basic templates
-        let comeback = Routine(title: "Comeback Mode", icon: "sparkles", accentColor: "Orange", priority: .high)
-        let comebackTasks = [
-            RoutineTask(title: "Morning Meditation", order: 0, parentRoutine: comeback, type: .oneOff, deadline: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date())),
-            RoutineTask(title: "Water Intake", order: 1, parentRoutine: comeback, type: .iterative, targetCount: 8),
-            RoutineTask(title: "Deep Work", order: 2, parentRoutine: comeback, type: .interval, startTime: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()), endTime: Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date()))
-        ]
-        comeback.tasks = comebackTasks
+        for routine in routines {
+            if !calendar.isDateInToday(routine.lastUpdatedDate) {
+                // It's a new day! Reset the interactive states
+                routine.isCompleted = false
+                routine.currentCount = 0
+                routine.lastUpdatedDate = Date()
+                needsSave = true
+            }
+        }
         
-        modelContext.insert(comeback)
-        try? modelContext.save()
+        if needsSave {
+            try? modelContext.save()
+        }
     }
 }
 
 #Preview {
-    RoutineView(viewModel: TaskDashboardViewModel())
+    RoutineView()
         .withAppTheme()
         .modelContainer(previewContainer)
 }

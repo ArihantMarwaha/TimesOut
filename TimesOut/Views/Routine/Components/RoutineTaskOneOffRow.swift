@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RoutineTaskOneOffRow: View {
-    @Bindable var task: RoutineTask
+    @Bindable var routine: Routine
     let accentColor: Color
     
     private let timeFormatter: DateFormatter = {
@@ -11,59 +11,55 @@ struct RoutineTaskOneOffRow: View {
     }()
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Deadline Icon
-            ZStack {
-                Circle()
-                    .fill(task.isCompleted ? accentColor.opacity(0.1) : Color.gray.opacity(0.1))
-                Image(systemName: "timer")
-                    .foregroundColor(task.isCompleted ? accentColor : .gray)
-                    .font(.title3)
-            }
-            .frame(width: 44, height: 44)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
-                    .strikethrough(task.isCompleted)
-                    .foregroundColor(task.isCompleted ? .secondary : .primary)
-                
-                if let deadline = task.deadline {
-                    Text("By \(timeFormatter.string(from: deadline))")
-                        .font(.system(size: 13, weight: .medium, design: .rounded))
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            // Completion Toggle
-            Button {
-                task.isCompleted.toggle()
+        Button {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                routine.isCompleted.toggle()
+                routine.lastUpdatedDate = Date()
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            } label: {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundColor(task.isCompleted ? accentColor : .secondary)
             }
-            .buttonStyle(.plain)
+        } label: {
+            RoutineCard(title: routine.title, accentColor: accentColor) {
+                // Visual Slot: Icon Header
+                ZStack {
+                    Circle()
+                        .fill(routine.isCompleted ? Color.gray.opacity(0.1) : accentColor.opacity(0.1))
+                    
+                    Image(systemName: routine.icon)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(routine.isCompleted ? .secondary : accentColor)
+                }
+                .frame(width: 60, height: 60)
+                .padding(10)
+                
+                Text(routine.isCompleted ? "Completed" : "Tap to Log")
+                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .foregroundColor(routine.isCompleted ? .green : .secondary)
+            } footer: {
+                // Footer Slot: Status Bar
+                Capsule()
+                    .fill(routine.isCompleted ? Color.green : Color.gray.opacity(0.1))
+                    .frame(height: 4)
+                    .padding(.top, 4)
+                    .padding(.bottom, 8)
+            }
         }
-        .padding(.vertical, 8)
+        .buttonStyle(SquishButtonStyle())
     }
 }
-
 #Preview {
-    let deadline = Calendar.current.date(byAdding: .hour, value: 2, to: Date())
-    
-    return List {
-        RoutineTaskOneOffRow(
-            task: RoutineTask(title: "Go to Gym", type: .oneOff, deadline: deadline),
-            accentColor: .green
-        )
+    ZStack {
+        Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
         
         RoutineTaskOneOffRow(
-            task: RoutineTask(title: "Take Vitamins", type: .oneOff, deadline: deadline, isCompleted: true),
-            accentColor: .yellow
+            routine: Routine(
+                title: "Call Mom",
+                icon: "phone.fill",
+                accentColor: AppAccentColor.pink.rawValue,
+                type: .oneOff,
+                deadline: Date()
+            ),
+            accentColor: .pink
         )
+        .padding()
     }
 }

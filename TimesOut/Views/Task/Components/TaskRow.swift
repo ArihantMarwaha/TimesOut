@@ -143,6 +143,10 @@ struct TaskRow: View {
                             isExpanded.toggle()
                         }
                     } else {
+                        // If un-completing, ensure it's not archived
+                        if task.isCompleted {
+                            task.isArchived = false
+                        }
                         onToggle()
                     }
                 }

@@ -14,10 +14,6 @@ struct MainTaskView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // 1. The Dynamic Routine Dashboard (Only shows if a routine is active)
-                    ActiveRoutineDashboard()
-                        .padding(.top, 10)
-                    
                     // 2. The Regular Tasks List
                     TaskListView(
                         tasks: tasks,

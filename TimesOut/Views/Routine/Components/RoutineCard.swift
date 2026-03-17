@@ -7,27 +7,34 @@ struct RoutineCard<Visual: View, Footer: View>: View {
     @ViewBuilder let footer: Footer
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 5) {
+            Spacer(minLength: 0)
+                .frame(height: 20)
+            
             // Top Visual Area
             visual
                 .frame(maxWidth: .infinity)
-                .padding()
+                .padding(.horizontal, 16)
             
             
             // Middle Title Area
             Text(title)
                 .font(.system(size: 16, weight: .bold))
                 .fontWidth(.expanded)
-                .lineLimit(2)
                 .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.9)
+                .frame(height: 42, alignment: .center)
                 .padding(.horizontal, 4)
+            
+            Spacer(minLength: 0)
             
             // Bottom Footer/Action Area
             footer
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .frame(height: 200)
+        .frame(height: 250)
         .glassEffect(.regular.interactive(),in:.rect(cornerRadius:25))
         .background {
             RoundedRectangle(cornerRadius: 25)

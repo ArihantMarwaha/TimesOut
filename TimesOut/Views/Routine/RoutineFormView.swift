@@ -58,6 +58,7 @@ struct RoutineFormView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .buttonStyle(.glassProminent)
                         .fontWeight(.semibold)
                 }
                 ToolbarItem(placement: .confirmationAction) {
@@ -76,7 +77,7 @@ struct RoutineFormView: View {
     @ViewBuilder
     private var detailsSection: some View {
         Section {
-            TextField("Routine Name (e.g. Drink Water)", text: $title)
+            TextField("Routine Name", text: $title)
                 .font(.system(size: 20, weight: .semibold, design: .monospaced))
         } header: {
             Text("Routine Details")
@@ -111,6 +112,7 @@ struct RoutineFormView: View {
                 }
             }
             .pickerStyle(.menu)
+            .fontDesign(.monospaced)
             
             switch type {
             case .iterative:

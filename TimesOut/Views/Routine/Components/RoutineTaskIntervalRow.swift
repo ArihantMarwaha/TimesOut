@@ -34,7 +34,7 @@ struct RoutineTaskIntervalRow: View {
                     .foregroundColor(isWithinWindow ? accentColor : .secondary)
             }
             .frame(width: 60, height: 60)
-            .padding(10)
+            .padding(.top, 15)
             
             Text(timeStatusText)
                 .font(.system(size: 10, weight: .black, design: .rounded))

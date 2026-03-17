@@ -29,18 +29,21 @@ struct RoutineTaskOneOffRow: View {
                         .foregroundColor(routine.isCompleted ? .secondary : accentColor)
                 }
                 .frame(width: 60, height: 60)
-                .padding(10)
+                .padding(.top,20)
                 
                 Text(routine.isCompleted ? "Completed" : "Tap to Log")
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundColor(routine.isCompleted ? .green : .secondary)
+                    .padding(-25)
+                    .padding(.bottom,-30)
             } footer: {
                 // Footer Slot: Status Bar
                 Capsule()
                     .fill(routine.isCompleted ? Color.green : Color.gray.opacity(0.1))
-                    .frame(height: 4)
-                    .padding(.top, 4)
+                    .frame(height: 6)
+                    .padding(.top, -10)
                     .padding(.bottom, 8)
+                    .padding(.horizontal,30)
             }
         }
         .buttonStyle(SquishButtonStyle())

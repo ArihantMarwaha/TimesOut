@@ -12,15 +12,17 @@ struct RoutineTaskIterativeRow: View {
             } label: {
                 ZStack {
                     Circle()
-                        .stroke(accentColor.opacity(0.1), lineWidth: 6)
+                        .trim(from: 0.150, to: 0.850)
+                        .stroke(accentColor.opacity(0.1), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(90))
                     
                     Circle()
-                        .trim(from: 0, to: CGFloat(routine.currentCount) / CGFloat(routine.targetCount))
+                        .trim(from: 0.150, to: 0.150 + (0.70 * CGFloat(routine.currentCount) / CGFloat(routine.targetCount)))
                         .stroke(
                             accentColor.gradient,
                             style: StrokeStyle(lineWidth: 6, lineCap: .round)
                         )
-                        .rotationEffect(.degrees(-90))
+                        .rotationEffect(.degrees(90))
                         .animation(.spring(response: 0.6, dampingFraction: 0.7), value: routine.currentCount)
                     
                     VStack(spacing: 0) {
@@ -29,11 +31,11 @@ struct RoutineTaskIterativeRow: View {
                             .foregroundColor(accentColor)
                         
                         Text("\(routine.currentCount)")
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
                             .contentTransition(.numericText())
                     }
                 }
-                .padding(10)
+                .padding(.top, 10)
                 .glassEffect(.regular, in: .circle)
                 .shadow(color: accentColor.opacity(0.15), radius: 10, x: 0, y: 5)
             }
@@ -43,9 +45,11 @@ struct RoutineTaskIterativeRow: View {
             Text("\(routine.currentCount) / \(routine.targetCount)")
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
                 .foregroundColor(.secondary)
+                .contentTransition(.numericText())
                 .padding(.bottom, 8)
         }
     }
+    
     
     private func logProgress() {
         guard routine.currentCount < routine.targetCount else {

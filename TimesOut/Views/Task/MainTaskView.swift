@@ -66,6 +66,7 @@ struct MainTaskView: View {
             }
             .withAppTheme()
         }
+        //main task view ends here
     }
 }
 
